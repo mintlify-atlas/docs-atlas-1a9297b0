@@ -1,0 +1,309 @@
+---
+title: 'Color Customization'
+description: 'Learn how to override automatic colors and restore Color Palettes defaults'
+---
+
+## Overview
+
+While Color Palettes automatically apply brand colors to your visualizations, you maintain full control over the final appearance. You can override any automatically applied color and easily restore defaults when needed.
+
+<Tip>
+  Customization gives you the flexibility to adapt visualizations for specific use cases while maintaining the ability to quickly return to community standards.
+</Tip>
+
+## Overriding Colors
+
+You can manually override any automatically applied color through Dune's visualization editor.
+
+<Steps>
+  <Step title="Create your query">
+    Write a query that returns data with protocol or chain names:
+    
+    ```sql
+    SELECT 
+      blockchain,
+      SUM(amount_usd) as volume
+    FROM dex.trades
+    WHERE block_time >= NOW() - INTERVAL '7' day
+    GROUP BY blockchain
+    ```
+  </Step>
+  
+  <Step title="Visualize the data">
+    Create a chart (bar, pie, line, etc.) from your query results. Colors will be automatically applied based on the Color Palettes schema.
+  </Step>
+  
+  <Step title="Override specific colors">
+    In the visualization editor:
+    1. Click on the series/data point you want to customize
+    2. Select your preferred color from the color picker
+    3. The new color will override the automatic Color Palettes color
+  </Step>
+  
+  <Step title="Save your changes">
+    Your custom color choices are saved with the visualization and will persist across dashboard refreshes.
+  </Step>
+</Steps>
+
+## When to Override Colors
+
+<CardGroup cols={2}>
+  <Card title="Highlighting Specific Data" icon="highlighter">
+    Emphasize particular protocols or chains by using contrasting colors
+  </Card>
+  
+  <Card title="Accessibility Needs" icon="universal-access">
+    Adjust colors for better contrast or color-blind friendly palettes
+  </Card>
+  
+  <Card title="Brand Guidelines" icon="building">
+    Match specific corporate or project branding requirements
+  </Card>
+  
+  <Card title="Visual Hierarchy" icon="layer-group">
+    Use custom colors to create visual groupings or hierarchies
+  </Card>
+</CardGroup>
+
+## Use Cases for Custom Colors
+
+### Highlighting Top Performers
+
+```sql
+SELECT 
+  project as dex,
+  SUM(amount_usd) as volume_usd
+FROM dex.trades
+WHERE blockchain = 'ethereum'
+  AND block_time >= NOW() - INTERVAL '30' day
+GROUP BY project
+ORDER BY volume_usd DESC
+LIMIT 10
+```
+
+You might:
+- Keep the top 3 protocols in their brand colors
+- Override lower-volume protocols to use muted gray tones
+- This creates visual focus on the market leaders
+
+### Creating Color Groupings
+
+```sql
+SELECT 
+  blockchain,
+  protocol_type,
+  SUM(volume) as total_volume
+FROM analytics.protocol_metrics
+GROUP BY blockchain, protocol_type
+```
+
+You might:
+- Override colors to group by protocol type (all DEXes in blue shades, all lending in green shades)
+- Even though automatic colors apply by blockchain, custom grouping by type can be more useful
+
+### Accessibility Improvements
+
+<Note>
+  Some brand colors may not provide sufficient contrast or may be difficult for color-blind users to distinguish.
+</Note>
+
+Consider overriding when:
+- Two protocols have very similar brand colors (e.g., multiple shades of blue)
+- Colors don't meet WCAG contrast requirements
+- Creating dashboards for color-blind accessibility
+
+## Restoring Default Colors
+
+The **Restore colors** button allows you to quickly revert all manual overrides and return to the community-maintained Color Palettes.
+
+<Steps>
+  <Step title="Locate the Restore button">
+    In the visualization editor, find the "Restore colors" button (typically in the color settings panel)
+  </Step>
+  
+  <Step title="Click to restore">
+    Click the button to restore all series to their automatic Color Palettes colors
+  </Step>
+  
+  <Step title="Verify changes">
+    All manual color overrides are removed, and the visualization returns to using automatic matching based on protocol/chain names
+  </Step>
+</Steps>
+
+<Warning>
+  Restoring colors will remove **all** custom color choices for that visualization. This action cannot be undone, so make sure you want to revert all changes.
+</Warning>
+
+## When to Restore Colors
+
+### Schema Updates
+
+The Color Palettes schema is community-maintained and updated regularly:
+
+```json
+// Before: Old Ethereum color
+{
+  "Ethereum": {
+    "hex": "#627EEA",
+    "aliases": ["ethereum", "eth", "weth"]
+  }
+}
+
+// After: Updated to current brand color
+{
+  "Ethereum": {
+    "hex": "#88AAF1",
+    "aliases": ["ethereum", "eth", "weth"]
+  }
+}
+```
+
+If you had manually overridden Ethereum's color, clicking **Restore colors** will update your visualization to use the new community standard (#88AAF1).
+
+### Consistency Across Dashboards
+
+<Tip>
+  If you've made multiple custom changes and want to return to consistent branding across all your dashboards, use the Restore colors button.
+</Tip>
+
+This is particularly useful when:
+- You've experimented with different color schemes
+- You want to align with updated brand guidelines
+- You're sharing dashboards publicly and want to use recognized brand colors
+
+### New Protocol Additions
+
+When new protocols are added to the Color Palettes schema:
+
+```json
+{
+  "Unichain": {
+    "hex": "#FC0FA4",
+    "aliases": ["unichain"]
+  },
+  "Berachain": {
+    "hex": "#451D07",
+    "aliases": ["berachain"]
+  },
+  "Sonic": {
+    "hex": "#F27A2C",
+    "aliases": ["sonic"]
+  }
+}
+```
+
+Restoring colors ensures these new protocols get their official brand colors if they appear in your existing visualizations.
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Start with automatic colors">
+    Always begin with the automatic Color Palettes colors. Only override when you have a specific reason:
+    - Accessibility requirements
+    - Special emphasis needed
+    - Brand guideline compliance
+    - Visual grouping requirements
+  </Accordion>
+  
+  <Accordion title="Document your overrides">
+    If you override colors for a specific reason, consider adding a note in your dashboard description explaining why. This helps future collaborators understand your choices.
+  </Accordion>
+  
+  <Accordion title="Maintain consistency within dashboards">
+    If you override a protocol's color in one chart, use the same custom color for that protocol across all charts in the same dashboard.
+  </Accordion>
+  
+  <Accordion title="Periodically check for updates">
+    The Color Palettes schema is updated regularly. Periodically restore colors to benefit from:
+    - New protocol additions
+    - Updated brand colors
+    - New alias additions
+    - Community improvements
+  </Accordion>
+  
+  <Accordion title="Consider accessibility">
+    When overriding colors, ensure:
+    - Sufficient contrast between colors
+    - Distinguishable colors for color-blind users
+    - Meaningful differences in shade/hue
+    - Proper contrast with background colors
+  </Accordion>
+</AccordionGroup>
+
+## Color Override Examples
+
+### Example 1: Emphasis Colors
+
+**Query**: Top 5 NFT marketplaces by volume
+
+**Automatic Colors**:
+- OpenSea: #2884E4 (blue)
+- Blur: #FF8404 (orange)
+- LooksRare: #10E464 (green)
+- X2Y2: #14DBFC (cyan)
+- MagicEden: #BF79F5 (purple)
+
+**Custom Override**:
+- OpenSea: #FFD700 (gold) ← Override to emphasize market leader
+- Blur: #C0C0C0 (silver) ← Override to show second place
+- Others: Keep automatic colors
+
+### Example 2: Category Grouping
+
+**Query**: Layer 2 scaling solutions comparison
+
+**Automatic Colors**:
+- Arbitrum: #12AAFF
+- Optimism: #FF0420
+- Base: #0052FF
+- ZKsync: #1E69FF
+- Polygon zkEVM: #A128C5
+
+**Custom Override** (Group by technology):
+- **Optimistic Rollups** (blue shades):
+  - Arbitrum: #1E3A8A
+  - Optimism: #3B82F6
+  - Base: #60A5FA
+- **ZK Rollups** (purple shades):
+  - ZKsync: #6B21A8
+  - Polygon zkEVM: #A855F7
+
+## Workflow Recommendations
+
+<Steps>
+  <Step title="Build with defaults">
+    Create your initial visualization using automatic Color Palettes
+  </Step>
+  
+  <Step title="Review for clarity">
+    Check if the automatic colors clearly communicate your data story
+  </Step>
+  
+  <Step title="Override selectively">
+    Only customize colors where automatic assignment doesn't serve your purpose
+  </Step>
+  
+  <Step title="Test accessibility">
+    Verify your custom colors work for color-blind users and meet contrast requirements
+  </Step>
+  
+  <Step title="Maintain consistency">
+    Apply the same custom colors across all related visualizations in your dashboard
+  </Step>
+  
+  <Step title="Periodic refresh">
+    Every few months, consider restoring colors to benefit from schema updates
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Query Examples" icon="code" href="/usage/query-examples">
+    Explore real-world query patterns with Color Palettes
+  </Card>
+  
+  <Card title="Automatic Application" icon="wand-magic-sparkles" href="/usage/automatic-application">
+    Learn how colors are automatically matched
+  </Card>
+</CardGroup>

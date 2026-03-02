@@ -1,0 +1,327 @@
+---
+title: Schema Structure
+description: Detailed documentation of the Color Palettes schema properties, patterns, and requirements.
+---
+
+The Color Palettes schema defines a precise structure for protocol color entries. Understanding each property and its constraints is essential for contributing to the collection.
+
+## Top-Level Structure
+
+The schema uses `patternProperties` to define protocol entries dynamically. Each protocol name serves as a key in the JSON object.
+
+<ParamField path="Protocol Name" type="string" required>
+  The unique identifier for a protocol, chain, or token. This is the top-level key in the JSON structure.
+  
+  **Pattern**: `^[A-Za-z0-9\\s\\-_().₮]+$`
+  
+  **Allowed Characters**:
+  - Uppercase and lowercase letters (A-Z, a-z)
+  - Numbers (0-9)
+  - Spaces
+  - Hyphens (-)
+  - Underscores (_)
+  - Parentheses ()
+  - Periods (.)
+  - Special character: ₮ (Tugrik symbol)
+  
+  **Examples**:
+  - ✅ `"Ethereum"`
+  - ✅ `"Polygon zkEVM"`
+  - ✅ `"SEI (Cosmos)"`
+  - ✅ `"1inch"`
+  - ✅ `"USD₮"`
+  - ❌ `"Protocol@Name"` (@ not allowed)
+  - ❌ `"Protocol/Name"` (/ not allowed)
+</ParamField>
+
+## Protocol Object Properties
+
+Each protocol name maps to an object with exactly two required properties: `hex` and `aliases`. No additional properties are permitted.
+
+### Hex Color Property
+
+<ParamField path="hex" type="string" required>
+  The hexadecimal color code representing the protocol's primary brand color.
+  
+  **Pattern**: `^#[0-9A-Fa-f]{6}$`
+  
+  **Format Requirements**:
+  - Must start with `#`
+  - Must be followed by exactly 6 characters
+  - Characters must be hexadecimal (0-9, A-F, a-f)
+  - Both uppercase and lowercase are accepted
+  
+  **Valid Examples**:
+  ```json
+  "hex": "#88AAF1"  // Ethereum blue
+  "hex": "#F50DB4"  // Uniswap pink
+  "hex": "#0052FF"  // Base blue
+  "hex": "#14F195"  // Solana green
+  "hex": "#000000"  // Black
+  "hex": "#ffffff"  // White (lowercase)
+  ```
+  
+  **Invalid Examples**:
+  ```json
+  "hex": "88AAF1"   // ❌ Missing #
+  "hex": "#88AAF"   // ❌ Only 5 characters
+  "hex": "#88AAFFFF" // ❌ 8 characters (no alpha)
+  "hex": "#GGG111"  // ❌ Invalid hex characters
+  "hex": "rgb(136, 170, 241)" // ❌ Not hex format
+  ```
+</ParamField>
+
+<Note>
+The schema does not support alpha channels (8-character hex codes). All colors must be fully opaque 6-character RGB hex codes.
+</Note>
+
+### Aliases Property
+
+<ParamField path="aliases" type="array" required>
+  An array of alternative names and variations used to match protocol names in Dune Analytics queries.
+  
+  **Array Requirements**:
+  - Must contain at least 1 item (`minItems: 1`)
+  - All items must be unique (`uniqueItems: true`)
+  - Each item must be a string matching the alias pattern
+  
+  **Item Pattern**: `^[a-zA-Z0-9_\\s.₮-]+$`
+  
+  **Allowed Characters** (per alias):
+  - Uppercase and lowercase letters (A-Z, a-z)
+  - Numbers (0-9)
+  - Underscores (_)
+  - Spaces
+  - Periods (.)
+  - Special character: ₮ (Tugrik symbol)
+  - Hyphens (-)
+  
+  **Examples**:
+  ```json
+  "aliases": ["ethereum", "eth", "weth"]
+  "aliases": ["polygon", "polygon pos"]
+  "aliases": ["arbitrum", "arbitrum one", "arb"]
+  "aliases": ["avalanche_c", "avalanche", "avalanche c-chain", "avax"]
+  "aliases": ["usd-tether"]
+  "aliases": ["base"]  // Single alias is valid
+  ```
+</ParamField>
+
+## Complete Entry Examples
+
+### Blockchain Networks
+
+<CodeGroup>
+```json Ethereum
+{
+  "Ethereum": {
+    "hex": "#88AAF1",
+    "aliases": ["ethereum", "eth", "weth"]
+  }
+}
+```
+
+```json Arbitrum
+{
+  "Arbitrum": {
+    "hex": "#12AAFF",
+    "aliases": ["arbitrum", "arbitrum one", "arb"]
+  }
+}
+```
+
+```json Polygon zkEVM
+{
+  "Polygon zkEVM": {
+    "hex": "#A128C5",
+    "aliases": ["zkevm"]
+  }
+}
+```
+</CodeGroup>
+
+### DeFi Protocols
+
+<CodeGroup>
+```json Uniswap
+{
+  "Uniswap": {
+    "hex": "#F50DB4",
+    "aliases": ["uniswap", "uni"]
+  }
+}
+```
+
+```json 1inch
+{
+  "1inch": {
+    "hex": "#0077FF",
+    "aliases": ["1inch", "oneinch", "inch"]
+  }
+}
+```
+
+```json Lido
+{
+  "Lido": {
+    "hex": "#4DB0F2",
+    "aliases": ["lido"]
+  }
+}
+```
+</CodeGroup>
+
+### Stablecoins
+
+<CodeGroup>
+```json USDC
+{
+  "USDC": {
+    "hex": "#2775CA",
+    "aliases": ["usdc"]
+  }
+}
+```
+
+```json USDT
+{
+  "USDT": {
+    "hex": "#26A17B",
+    "aliases": ["usdt", "tether"]
+  }
+}
+```
+
+```json DAI
+{
+  "DAI": {
+    "hex": "#F2B705",
+    "aliases": ["dai"]
+  }
+}
+```
+</CodeGroup>
+
+### Special Cases
+
+<CodeGroup>
+```json Protocol with Parentheses
+{
+  "SEI (Cosmos)": {
+    "hex": "#B52A2A",
+    "aliases": ["sei cosmos", "sei network"]
+  }
+}
+```
+
+```json Protocol with Special Character
+{
+  "USD₮": {
+    "hex": "#157A55",
+    "aliases": ["usd-tether"]
+  }
+}
+```
+
+```json Lowercase Protocol Name
+{
+  "laos": {
+    "hex": "#d7ff5e",
+    "aliases": ["laos"]
+  }
+}
+```
+</CodeGroup>
+
+## Property Constraints Summary
+
+<ResponseField name="Protocol Entry" type="object">
+  <Expandable title="properties">
+    <ResponseField name="hex" type="string" required>
+      6-character hexadecimal color code with `#` prefix
+      
+      Pattern: `^#[0-9A-Fa-f]{6}$`
+    </ResponseField>
+    
+    <ResponseField name="aliases" type="array" required>
+      Array of alternative protocol names for matching
+      
+      - Minimum items: 1
+      - Unique items: true
+      - Item pattern: `^[a-zA-Z0-9_\\s.₮-]+$`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<Warning>
+The schema explicitly sets `"additionalProperties": false` at both the protocol object level and the root level. This means:
+
+- You cannot add extra fields to a protocol entry
+- You cannot add top-level properties beyond protocol names
+- Any additional properties will cause validation to fail
+</Warning>
+
+## Alias Best Practices
+
+<AccordionGroup>
+  <Accordion title="Include Common Variations">
+    Add all commonly used names and abbreviations for the protocol:
+    
+    ```json
+    "Ethereum": {
+      "hex": "#88AAF1",
+      "aliases": ["ethereum", "eth", "weth"]  // Full name + abbreviation + wrapped token
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Use Lowercase for Matching">
+    Aliases are matched case-insensitively in Dune, but convention is to use lowercase:
+    
+    ```json
+    "aliases": ["arbitrum", "arbitrum one", "arb"]  // ✅ Preferred
+    "aliases": ["Arbitrum", "ARBITRUM ONE", "ARB"]  // ⚠️ Works but not conventional
+    ```
+  </Accordion>
+  
+  <Accordion title="Avoid Conflicts">
+    Ensure your aliases don't overlap with other protocols. The CI system will catch conflicts:
+    
+    ```json
+    // ❌ This will fail CI if "bsc" is already used
+    "Basis Cash": {
+      "hex": "#000000",
+      "aliases": ["bsc", "basis"]  // "bsc" conflicts with Binance Smart Chain
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Include Version Variations">
+    For protocols with multiple versions, include version-specific aliases:
+    
+    ```json
+    "Polygon zkEVM": {
+      "hex": "#A128C5",
+      "aliases": ["zkevm"]  // Version-specific alias
+    },
+    "Polygon": {
+      "hex": "#8A46FF",
+      "aliases": ["polygon", "polygon pos"]  // Main chain + variant
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Schema Enforcement
+
+The schema is enforced through automated validation in the CI pipeline. Every pull request is checked to ensure:
+
+1. **Valid JSON syntax** - The file must be properly formatted JSON
+2. **Schema compliance** - All entries match the defined patterns and requirements
+3. **Required fields** - Both `hex` and `aliases` are present for every protocol
+4. **Format validation** - Hex codes and aliases match their respective patterns
+5. **No extra properties** - Only defined properties are present
+
+<Tip>
+Use a JSON schema validator locally before submitting your contribution to catch errors early. Most modern IDEs support JSON schema validation automatically.
+</Tip>

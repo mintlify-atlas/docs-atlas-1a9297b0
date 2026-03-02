@@ -1,0 +1,215 @@
+---
+title: 'Automatic Color Application'
+description: 'Learn how Color Palettes are automatically applied to your Dune visualizations'
+---
+
+## How It Works
+
+Color Palettes automatically apply brand colors to your visualizations when protocols or chains are detected in your query results. No manual configuration needed - just write your query and the colors match automatically.
+
+<Note>
+  Colors are matched against protocol names and aliases in a **case-insensitive** manner, making it easy to get consistent colors regardless of how you format your data.
+</Note>
+
+## Matching Rules
+
+The automatic matching system looks for protocol names in your query results and compares them against the aliases defined in the color palette schema.
+
+### What Matches
+
+Given the following schema:
+
+```json
+{
+  "Ethereum": {
+    "hex": "#88AAF1",
+    "aliases": ["eth", "weth", "ethereum"]
+  }
+}
+```
+
+The following values in your query results **will match** and get colored:
+
+<Steps>
+  <Step title="Exact lowercase match">
+    `eth` - Direct match to alias
+  </Step>
+  
+  <Step title="Case-insensitive match">
+    `Eth`, `ETH`, `EtH` - All variations match
+  </Step>
+  
+  <Step title="Mixed case match">
+    `WeTh`, `WETH`, `weth` - Alias matching is case-insensitive
+  </Step>
+  
+  <Step title="Special EVM syntax">
+    `evm_\<color:eth\>` - Allows appending other data while preserving color matching
+  </Step>
+</Steps>
+
+### What Doesn't Match
+
+<Warning>
+  The following patterns will **not** match and won't receive automatic colors:
+</Warning>
+
+- `ethereum` - Not in the aliases list (only "eth" and "weth" are)
+- `evm<clor:eth>` - Typo in the special syntax (missing underscore)
+- `color:eth` - Missing the `evm_` prefix
+- Partial matches like `ethereum_mainnet` (unless specifically aliased)
+
+## The evm_\<color:*\> Pattern
+
+<Tip>
+  The `evm_\<color:protocol\>` syntax is a special feature that allows you to append additional information to your labels while maintaining automatic color matching.
+</Tip>
+
+This is particularly useful when you need to:
+- Add version numbers or chain identifiers
+- Include additional context in labels
+- Maintain consistent colors across complex queries
+
+### Example Usage
+
+```sql
+SELECT 
+  CONCAT('evm_<color:', blockchain, '>', ' v2') as protocol_version,
+  SUM(amount_usd) as volume
+FROM dex.trades
+WHERE blockchain IN ('ethereum', 'polygon', 'arbitrum')
+GROUP BY blockchain
+```
+
+This query will:
+1. Match colors based on the blockchain name within the color tag
+2. Display as "evm_\<color:ethereum\> v2", "evm_\<color:polygon\> v2", etc.
+3. Apply the correct brand colors automatically
+
+## Real-World Examples
+
+### Chain Comparison Dashboard
+
+```sql
+SELECT 
+  blockchain,
+  COUNT(DISTINCT tx_hash) as transaction_count,
+  SUM(amount_usd) as total_volume
+FROM dex.trades
+WHERE block_time >= NOW() - INTERVAL '7' day
+GROUP BY blockchain
+ORDER BY total_volume DESC
+```
+
+<CodeGroup>
+```text Matched Colors
+Base → #0052FF (blue)
+Optimism → #FF0420 (red)
+Arbitrum → #12AAFF (light blue)
+Polygon → #8A46FF (purple)
+Ethereum → #88AAF1 (slate blue)
+```
+
+```text Query Output
+blockchain | transaction_count | total_volume
+-----------+------------------+-------------
+base       | 1,234,567        | $45.2M
+optimism   | 987,654          | $32.1M
+arbitrum   | 876,543          | $28.7M
+polygon    | 765,432          | $19.4M
+ethereum   | 654,321          | $15.8M
+```
+</CodeGroup>
+
+### Protocol Market Share
+
+```sql
+SELECT 
+  project as protocol,
+  SUM(amount_usd) as volume,
+  COUNT(*) as trades
+FROM dex.trades
+WHERE block_time >= NOW() - INTERVAL '30' day
+  AND blockchain = 'ethereum'
+GROUP BY project
+ORDER BY volume DESC
+LIMIT 10
+```
+
+Protocols like `Uniswap` (#F50DB4), `1inch` (#0077FF), and others will automatically receive their brand colors.
+
+## Case Sensitivity
+
+<Note>
+  All matching is **case-insensitive**, so you don't need to worry about capitalization in your query results.
+</Note>
+
+### Examples
+
+All of these will match the same color:
+
+```text
+Uniswap  →  #F50DB4 (pink)
+uniswap  →  #F50DB4 (pink)
+UNISWAP  →  #F50DB4 (pink)
+UniSwap  →  #F50DB4 (pink)
+UNI      →  #F50DB4 (pink)
+uni      →  #F50DB4 (pink)
+```
+
+## Common Use Cases
+
+### DEX Volume Analysis
+
+When analyzing DEX volumes, protocols are automatically colored:
+
+- **Uniswap**: #F50DB4 (bright pink)
+- **1inch**: #0077FF (blue)
+- NFT marketplaces like **OpenSea** (#2884E4), **Blur** (#FF8404), **LooksRare** (#10E464)
+
+### Blockchain Comparison
+
+When comparing chains, each automatically gets its brand color:
+
+- **Ethereum**: #88AAF1 (slate blue)
+- **Polygon**: #8A46FF (purple)
+- **Arbitrum**: #12AAFF (light blue)
+- **Optimism**: #FF0420 (red)
+- **Base**: #0052FF (blue)
+- **BNB**: #F3BA2F (yellow)
+- **Solana**: #14F195 (green)
+- **Avalanche**: #E84142 (red)
+
+### Stablecoin Analysis
+
+Stablecoins also have standardized colors:
+
+- **USDT**: #26A17B (green)
+- **USDC**: #2775CA (blue)
+- **DAI**: #F2B705 (yellow/gold)
+- **USDe**: #6F3FF5 (purple)
+- **USDS**: #00A6D6 (cyan)
+
+## Performance Benefits
+
+<Tip>
+  Automatic color application saves time and ensures consistency across all your dashboards without any manual color picker interactions.
+</Tip>
+
+Benefits:
+- **No manual work**: Colors apply automatically based on your data
+- **Consistency**: Same protocol always gets the same color across all visualizations
+- **Time savings**: No need to configure colors for each chart
+- **Community standards**: Leverages community-maintained brand colors
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Customization" icon="palette" href="/usage/customization">
+    Learn how to override and restore colors
+  </Card>
+  
+  <Card title="Query Examples" icon="code" href="/usage/query-examples">
+    Explore real-world query patterns
+  </Card>
+</CardGroup>

@@ -1,80 +1,361 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart Guide
+description: Learn how to use Color Palettes in your Dune Analytics visualizations
 ---
 
-## Get started in three steps
+## Get Started in Minutes
 
-Get your documentation site running locally and make your first customization.
+Color Palettes work automatically in Dune Analytics. Simply query protocols by their names or aliases, and colors are applied to your visualizations.
 
-### Step 1: Set up your local environment
+<Steps>
+  <Step title="Write Your Query">
+    Use protocol names or aliases in your query results. Color Palettes will automatically detect them.
+  </Step>
+  <Step title="Create Visualization">
+    Generate a chart from your query results. Colors are applied automatically.
+  </Step>
+  <Step title="Customize (Optional)">
+    Override colors manually or use the "Restore colors" button to revert to standard palettes.
+  </Step>
+</Steps>
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+## Automatic Color Application
 
-### Step 2: Deploy your changes
+Color Palettes automatically apply when protocol or chain names match any defined alias (case-insensitive).
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
+### Basic Example: Chain Analysis
+
+<CodeGroup>
+
+```sql Query
+SELECT
+  blockchain,
+  COUNT(*) as transaction_count
+FROM ethereum.transactions
+WHERE block_time >= NOW() - INTERVAL '7' day
+GROUP BY blockchain
+```
+
+```json Color Mapping
+// Automatically applied colors:
+{
+  "ethereum": "#88AAF1",  // Matches alias "ethereum"
+  "base": "#0052FF",       // Matches alias "base"
+  "optimism": "#FF0420",   // Matches alias "optimism"
+  "arbitrum": "#12AAFF"   // Matches alias "arbitrum"
+}
+```
+
+</CodeGroup>
+
+<Tip>
+  The query column values (`ethereum`, `base`, etc.) are automatically matched against the Color Palettes aliases. No extra configuration needed!
+</Tip>
+
+### DeFi Protocol Example
+
+Analyzing DEX volumes across protocols:
+
+<CodeGroup>
+
+```sql Query
+SELECT
+  project as protocol,
+  SUM(amount_usd) as volume_24h
+FROM dex.trades
+WHERE block_time >= NOW() - INTERVAL '1' day
+GROUP BY project
+ORDER BY volume_24h DESC
+LIMIT 10
+```
+
+```json Color Mapping
+// Automatically applied when project names match aliases:
+{
+  "uniswap": "#F50DB4",     // Uniswap
+  "1inch": "#0077FF",       // 1inch
+  "Pancakeswap": "#F3BA2F", // Matches BNB alias "bsc"
+  "sushiswap": "#...",      // If defined in palette
+  "curve": "#..."           // If defined in palette
+}
+```
+
+</CodeGroup>
+
+## Understanding Alias Matching
+
+The matching system is case-insensitive and flexible:
+
+<Accordion title="What Matches">
+
+**Using Ethereum as example** (`"aliases": ["eth", "weth", "ethereum"]`):
+
+<Check>**These WILL match:**</Check>
+
+- `eth` (exact match)
+- `ETH` (case insensitive)
+- `Eth` (case insensitive)
+- `weth` (alias match)
+- `WeTh` (case insensitive alias)
+- `ethereum` (alias match)
+- `evm_<color:eth>` (special syntax support)
+
+<Warning>**These will NOT match:**</Warning>
+
+- `ether` (not an alias)
+- `evm<color:eth>` (missing underscore)
+- `color:eth` (incomplete syntax)
+- `ethereum_mainnet` (extra text)
+
 </Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+### Special Color Syntax
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+For advanced use cases, you can use the special `<color:alias>` syntax:
 
-### Step 3: Go live
+```sql
+SELECT
+  CONCAT('Layer2_', '<color:', blockchain, '>') as chain_label,
+  COUNT(*) as tx_count
+FROM transactions
+GROUP BY blockchain
+```
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+This allows you to append custom text while still getting automatic color matching.
 
-## Next steps
+## Real-World Examples
 
-Now that you have your docs running, explore these key features:
+### Example 1: NFT Marketplace Comparison
 
-<CardGroup cols={2}>
+Compare trading volume across major NFT marketplaces:
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+<CodeGroup>
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+```sql Query
+SELECT
+  nft_project_name as marketplace,
+  SUM(amount_usd) as volume_usd
+FROM nft.trades
+WHERE block_time >= NOW() - INTERVAL '30' day
+GROUP BY marketplace
+ORDER BY volume_usd DESC
+```
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
+```json Applied Colors
+{
+  "opensea": "#2884E4",
+  "blur": "#FF8404",
+  "magiceden": "#BF79F5",
+  "looksrare": "#10E464",
+  "x2y2": "#14DBFC"
+}
+```
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+</CodeGroup>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  These colors from the actual Color Palettes collection will be automatically applied when marketplace names match the aliases.
 </Note>
+
+### Example 2: Stablecoin Supply Analysis
+
+Track stablecoin market dominance:
+
+<CodeGroup>
+
+```sql Query
+SELECT
+  symbol as stablecoin,
+  SUM(amount) as total_supply
+FROM tokens.transfers
+WHERE contract_address IN (
+  -- USDC, USDT, DAI contract addresses
+  '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+  '0xdac17f958d2ee523a2206206994597c13d831ec7',
+  '0x6b175474e89094c44da98b954eedeac495271d0f'
+)
+GROUP BY symbol
+```
+
+```json Applied Colors
+{
+  "usdc": "#2775CA",   // USDC
+  "usdt": "#26A17B",   // USDT/Tether
+  "dai": "#F2B705"     // DAI
+}
+```
+
+</CodeGroup>
+
+### Example 3: Cross-Chain Activity
+
+Visualize transaction activity across multiple chains:
+
+<CodeGroup>
+
+```sql Query
+SELECT
+  blockchain,
+  DATE_TRUNC('day', block_time) as date,
+  COUNT(DISTINCT "from") as active_users
+FROM transactions
+WHERE block_time >= NOW() - INTERVAL '90' day
+GROUP BY blockchain, date
+```
+
+```json Applied Colors (Sample)
+{
+  "ethereum": "#88AAF1",
+  "base": "#0052FF",
+  "optimism": "#FF0420",
+  "arbitrum": "#12AAFF",
+  "polygon": "#8A46FF",
+  "zksync": "#1E69FF",
+  "linea": "#61DFFF",
+  "scroll": "#EBC28E"
+}
+```
+
+</CodeGroup>
+
+<Tip>
+  For multi-chain analysis, Color Palettes ensure each chain has a distinct, recognizable color that remains consistent across all your dashboards.
+</Tip>
+
+## Customization Options
+
+### Override Colors Manually
+
+You can override any automatically applied color:
+
+1. Click on the color in your visualization settings
+2. Choose your preferred color
+3. The override persists for that specific chart
+
+### Restore Default Colors
+
+To revert to standard Color Palettes:
+
+1. Open your visualization settings
+2. Click the **"Restore colors"** button
+3. All colors revert to the community-maintained standard
+
+<Info>
+  **Best Practice**: Use standard colors for consistency, but override when you need specific branding or accessibility requirements.
+</Info>
+
+## Common Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Multi-Chain Dashboards" icon="network-wired">
+    Consistent chain colors across all your cross-chain analytics
+  </Card>
+  <Card title="Protocol Comparisons" icon="chart-bar">
+    Compare DeFi protocols with recognizable brand colors
+  </Card>
+  <Card title="Token Analysis" icon="coins">
+    Analyze stablecoins, governance tokens, and more with standard colors
+  </Card>
+  <Card title="NFT Analytics" icon="image">
+    Track marketplace performance with consistent branding
+  </Card>
+</CardGroup>
+
+## Alias Reference
+
+Here are some commonly used protocols and their aliases:
+
+<AccordionGroup>
+  <Accordion title="Major Chains">
+    - **Ethereum**: `ethereum`, `eth`, `weth`
+    - **Base**: `base`
+    - **Arbitrum**: `arbitrum`, `arbitrum one`, `arb`
+    - **Optimism**: `optimism`, `op mainnet`, `op`
+    - **Polygon**: `polygon`, `polygon pos`
+    - **Solana**: `solana`, `sol`
+    - **Avalanche**: `avalanche_c`, `avalanche`, `avalanche c-chain`, `avax`
+    - **BNB Chain**: `bnb`, `bsc`
+  </Accordion>
+
+  <Accordion title="DeFi Protocols">
+    - **Uniswap**: `uniswap`, `uni`
+    - **1inch**: `1inch`, `oneinch`, `inch`
+    - **Lido**: `lido`
+    - **Aave**: *(check current palette)*
+    - **Curve**: *(check current palette)*
+  </Accordion>
+
+  <Accordion title="NFT Marketplaces">
+    - **OpenSea**: `opensea`
+    - **Blur**: `blur`
+    - **Magic Eden**: `magiceden`
+    - **LooksRare**: `looksrare`, `looks`
+    - **X2Y2**: `x2y2`
+  </Accordion>
+
+  <Accordion title="Stablecoins">
+    - **USDC**: `usdc`
+    - **USDT**: `usdt`, `tether`
+    - **DAI**: `dai`
+    - **USDS**: `usds`
+    - **crvUSD**: `crvusd`
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  **Full Reference**: For the complete list of 200+ protocols and all their aliases, refer to the `color-palettes.json` file in the repository.
+</Warning>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Colors not applying automatically">
+    **Check these common issues:**
+    
+    1. **Alias mismatch**: Your query result might use a name variation not in the aliases list
+    2. **Case sensitivity**: While matching is case-insensitive, ensure no extra characters
+    3. **Protocol not in palette**: The protocol might not be added yet - consider contributing!
+    
+    **Solution**: Check the `color-palettes.json` file for exact alias matches, or override colors manually.
+  </Accordion>
+
+  <Accordion title="Want to use a protocol not in the palette">
+    **You have two options:**
+    
+    1. **Manual override**: Set custom colors for that specific chart
+    2. **Contribute**: Add the protocol to Color Palettes so everyone benefits
+    
+    Contributing helps the entire Dune community maintain consistent visualizations!
+  </Accordion>
+
+  <Accordion title="Need different colors for branding">
+    **Override colors manually:**
+    
+    1. Click the color in your visualization settings
+    2. Select your brand color
+    3. The chart will use your custom color
+    
+    You can always use "Restore colors" to revert to standard palettes later.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Explore the Full Palette" icon="palette">
+    Browse `color-palettes.json` to see all 200+ supported protocols and their aliases
+  </Card>
+  <Card title="Contribute" icon="code-pull-request">
+    Add new protocols, update colors, or expand aliases to help the community
+  </Card>
+  <Card title="Best Practices" icon="star">
+    Use consistent colors across dashboards and maintain brand guidelines
+  </Card>
+  <Card title="Share Your Dashboards" icon="share">
+    Create beautiful, professional visualizations with standardized colors
+  </Card>
+</CardGroup>
+
+<Tip>
+  **Pro Tip**: When creating a new dashboard, write your queries first and let Color Palettes handle the colors automatically. This saves time and ensures consistency across all your visualizations.
+</Tip>

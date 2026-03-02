@@ -1,0 +1,453 @@
+---
+title: Adding New Protocol Colors
+description: Step-by-step guide to adding new protocol colors to the Color Palettes collection
+---
+
+This guide walks you through the process of adding new protocol colors to the Color Palettes project. Follow these steps carefully to ensure your contribution meets all requirements.
+
+## Understanding the Schema
+
+The color palettes are maintained in JSON format with a specific structure:
+
+```json
+{
+  "protocol_name": {
+    "hex": "#color_code",
+    "aliases": ["alias1", "alias2"]
+  }
+}
+```
+
+### Schema Properties
+
+<ParamField path="protocol_name" type="string" required>
+  The official name of the protocol or chain. This should match the brand's official name exactly.
+  
+  **Pattern**: `^[A-Za-z0-9\\s\\-_().₮]+$`
+  
+  **Examples**: `Ethereum`, `Uniswap`, `Polygon zkEVM`
+</ParamField>
+
+<ParamField path="hex" type="string" required>
+  The hex color code of the protocol's primary brand color.
+  
+  **Pattern**: `^#[0-9A-Fa-f]{6}$`
+  
+  **Examples**: `#627EEA`, `#FF007A`, `#8247E5`
+</ParamField>
+
+<ParamField path="aliases" type="array" required>
+  Common variations of the protocol name used in queries. Must contain at least one alias.
+  
+  **Item Pattern**: `^[a-zA-Z0-9_\\s.₮-]+$`
+  
+  **Requirements**:
+  - Minimum 1 alias
+  - All aliases must be unique (no duplicates within the array)
+  - Lowercase recommended for consistency
+  
+  **Examples**: `["ethereum", "eth", "weth"]`, `["uniswap", "uni"]`
+</ParamField>
+
+## Step-by-Step Process
+
+<Steps>
+  <Step title="Research the Protocol">
+    Before adding a new protocol, gather accurate information:
+    
+    <AccordionGroup>
+      <Accordion title="Find Official Brand Colors">
+        Check these sources in order of preference:
+        
+        1. **Official Brand Kit**: Many protocols provide downloadable brand assets
+        2. **Press/Media Pages**: Often include brand guidelines
+        3. **Official Website**: Use browser DevTools to inspect CSS for exact hex values
+        4. **Official Documentation**: May specify brand colors
+        5. **GitHub Repository**: Check for brand asset files
+        
+        <Warning>
+          Never guess colors or use colors from unofficial sources. If you can't find official brand colors, open an issue to discuss with maintainers.
+        </Warning>
+      </Accordion>
+      
+      <Accordion title="Identify Common Aliases">
+        Consider how the protocol appears in Dune Analytics:
+        
+        - Full protocol name (lowercase)
+        - Official ticker/symbol
+        - Common abbreviations
+        - Chain identifiers used in Dune
+        - Version-specific names (e.g., `uniswap_v2`, `uniswap_v3`)
+        
+        <Info>
+          Run sample queries in Dune to see how the protocol name appears in actual data.
+        </Info>
+      </Accordion>
+      
+      <Accordion title="Check for Existing Entries">
+        Before proceeding, verify the protocol isn't already in the collection:
+        
+        ```bash
+        # Search for the protocol name
+        cat color-palettes.json | jq 'keys[] | select(. | ascii_downcase | contains("protocol_name"))'
+        
+        # Search for specific aliases
+        cat color-palettes.json | jq -r 'to_entries[] | select(.value.aliases[] | contains("alias")) | .key'
+        ```
+      </Accordion>
+    </AccordionGroup>
+  </Step>
+  
+  <Step title="Prepare Your Entry">
+    Create your protocol entry following the schema:
+    
+    <CodeGroup>
+    ```json Template
+    "Protocol Name": {
+      "hex": "#HEXCODE",
+      "aliases": ["alias1", "alias2", "alias3"]
+    }
+    ```
+    
+    ```json Example: Layer 1 Chain
+    "Ethereum": {
+      "hex": "#88AAF1",
+      "aliases": ["ethereum", "eth", "weth"]
+    }
+    ```
+    
+    ```json Example: Layer 2 Chain
+    "Arbitrum": {
+      "hex": "#12AAFF",
+      "aliases": ["arbitrum", "arbitrum one", "arb"]
+    }
+    ```
+    
+    ```json Example: DeFi Protocol
+    "Uniswap": {
+      "hex": "#F50DB4",
+      "aliases": ["uniswap", "uni"]
+    }
+    ```
+    
+    ```json Example: Multi-word Protocol
+    "Polygon zkEVM": {
+      "hex": "#A128C5",
+      "aliases": ["zkevm"]
+    }
+    ```
+    </CodeGroup>
+    
+    <Check>
+      **Checklist before proceeding:**
+      - [ ] Protocol name matches official branding exactly
+      - [ ] Hex code is 6 digits with # prefix
+      - [ ] All hex digits are valid (0-9, A-F)
+      - [ ] At least one alias provided
+      - [ ] All aliases are lowercase
+      - [ ] No duplicate aliases within the entry
+    </Check>
+  </Step>
+  
+  <Step title="Edit the Color Palettes File">
+    Add your entry to `color-palettes.json`:
+    
+    1. **Open the file** in your preferred editor
+    2. **Find the appropriate location** (alphabetical order recommended but not required)
+    3. **Add your entry** with proper JSON formatting
+    4. **Ensure proper commas** between entries
+    
+    <CodeGroup>
+    ```json Before
+    {
+      "Arbitrum": {
+        "hex": "#12AAFF",
+        "aliases": ["arbitrum", "arbitrum one", "arb"]
+      },
+      "Base": {
+        "hex": "#0052FF",
+        "aliases": ["base"]
+      }
+    }
+    ```
+    
+    ```json After (Adding Optimism)
+    {
+      "Arbitrum": {
+        "hex": "#12AAFF",
+        "aliases": ["arbitrum", "arbitrum one", "arb"]
+      },
+      "Base": {
+        "hex": "#0052FF",
+        "aliases": ["base"]
+      },
+      "Optimism": {
+        "hex": "#FF0420",
+        "aliases": ["optimism", "op mainnet", "op"]
+      }
+    }
+    ```
+    </CodeGroup>
+    
+    <Warning>
+      **Common JSON Mistakes:**
+      - Missing comma between entries
+      - Extra comma after last entry
+      - Missing quotes around strings
+      - Incorrect bracket/brace nesting
+    </Warning>
+  </Step>
+  
+  <Step title="Validate Your Changes">
+    Before submitting, validate your JSON:
+    
+    <Tabs>
+      <Tab title="Using jq">
+        ```bash
+        # Validate JSON syntax
+        cat color-palettes.json | jq .
+        
+        # If valid, this will pretty-print the JSON
+        # If invalid, you'll see an error message with line number
+        ```
+      </Tab>
+      
+      <Tab title="Using Python">
+        ```python
+        import json
+        
+        with open('color-palettes.json', 'r') as f:
+            try:
+                data = json.load(f)
+                print("✓ Valid JSON")
+                print(f"Total protocols: {len(data)}")
+            except json.JSONDecodeError as e:
+                print(f"✗ Invalid JSON: {e}")
+        ```
+      </Tab>
+      
+      <Tab title="Using Node.js">
+        ```javascript
+        const fs = require('fs');
+        
+        try {
+          const data = JSON.parse(fs.readFileSync('color-palettes.json', 'utf8'));
+          console.log('✓ Valid JSON');
+          console.log(`Total protocols: ${Object.keys(data).length}`);
+        } catch (e) {
+          console.error('✗ Invalid JSON:', e.message);
+        }
+        ```
+      </Tab>
+      
+      <Tab title="Online Validator">
+        Copy your entire JSON and paste into an online validator:
+        
+        - [JSONLint](https://jsonlint.com/)
+        - [JSON Formatter](https://jsonformatter.curiousconcept.com/)
+        
+        <Note>
+          Be cautious with sensitive data when using online validators.
+        </Note>
+      </Tab>
+    </Tabs>
+    
+    <Check>
+      **Pre-submission validation:**
+      - [ ] JSON syntax is valid
+      - [ ] File is properly formatted
+      - [ ] New entry follows schema exactly
+      - [ ] Hex code format is correct
+      - [ ] No obvious alias conflicts
+    </Check>
+  </Step>
+  
+  <Step title="Submit Your Pull Request">
+    Create a pull request with your changes:
+    
+    ```bash
+    # Commit your changes
+    git add color-palettes.json
+    git commit -m "Add [Protocol Name] color palette"
+    
+    # Push to your fork
+    git push origin your-branch-name
+    ```
+    
+    **PR Description Template:**
+    
+    ```markdown
+    ## Adding [Protocol Name]
+    
+    **Protocol**: [Full Protocol Name]
+    **Primary Color**: [#HEXCODE]
+    **Source**: [Link to official brand guidelines]
+    
+    ### Aliases Included
+    - `alias1` - [Reason for inclusion]
+    - `alias2` - [Reason for inclusion]
+    - `alias3` - [Reason for inclusion]
+    
+    ### Verification
+    - [ ] Verified color from official source
+    - [ ] Tested aliases in Dune queries
+    - [ ] JSON validated locally
+    - [ ] No alias conflicts detected
+    ```
+  </Step>
+  
+  <Step title="Monitor CI Checks">
+    Once submitted, automated CI checks will run:
+    
+    <CardGroup cols={2}>
+      <Card title="JSON Schema Validation" icon="check-circle">
+        Validates your entry against the schema
+      </Card>
+      <Card title="Duplicate Alias Detection" icon="clone">
+        Checks for conflicts with existing aliases
+      </Card>
+    </CardGroup>
+    
+    <Info>
+      If CI checks fail, see [CI Validation Checks](/contributing/ci-checks) for troubleshooting guidance.
+    </Info>
+  </Step>
+</Steps>
+
+## Real-World Examples
+
+<AccordionGroup>
+  <Accordion title="Example 1: Adding a New Layer 2">
+    **Scenario**: Adding Optimism to the collection
+    
+    **Research**:
+    - Official site: https://optimism.io
+    - Brand color: `#FF0420` (from brand kit)
+    - Common names: "Optimism", "OP Mainnet", "OP"
+    
+    **Entry**:
+    ```json
+    "Optimism": {
+      "hex": "#FF0420",
+      "aliases": ["optimism", "op mainnet", "op"]
+    }
+    ```
+    
+    **Result**: ✅ Successfully added
+  </Accordion>
+  
+  <Accordion title="Example 2: Adding a DeFi Protocol">
+    **Scenario**: Adding Lido staking protocol
+    
+    **Research**:
+    - Official site: https://lido.fi
+    - Brand color: `#4DB0F2` (from CSS)
+    - Common name: "Lido" (ticker: LDO, but we use protocol name)
+    
+    **Entry**:
+    ```json
+    "Lido": {
+      "hex": "#4DB0F2",
+      "aliases": ["lido"]
+    }
+    ```
+    
+    **Result**: ✅ Successfully added
+  </Accordion>
+  
+  <Accordion title="Example 3: Adding a Protocol with Special Characters">
+    **Scenario**: Adding 1inch DEX aggregator
+    
+    **Research**:
+    - Official site: https://1inch.io
+    - Brand color: `#0077FF`
+    - Common names: "1inch", "oneinch" (spelled out), "inch"
+    
+    **Entry**:
+    ```json
+    "1inch": {
+      "hex": "#0077FF",
+      "aliases": ["1inch", "oneinch", "inch"]
+    }
+    ```
+    
+    **Note**: Numbers are allowed in protocol names and aliases
+    
+    **Result**: ✅ Successfully added
+  </Accordion>
+  
+  <Accordion title="Example 4: Handling Alias Conflicts">
+    **Scenario**: Adding Sei, but "sei" alias might conflict
+    
+    **Research**:
+    - Checking existing entries: Found "SEI (Cosmos)" with aliases `["sei cosmos", "sei network"]`
+    - This is a different Sei implementation
+    
+    **Entry**:
+    ```json
+    "Sei": {
+      "hex": "#9E201B",
+      "aliases": ["sei"]
+    }
+    ```
+    
+    **CI Check**: ❌ Would fail - "sei" conflicts with context in "SEI (Cosmos)"
+    
+    **Resolution**: Use more specific aliases or discuss in PR
+    
+    See [Understanding Alias Conflicts](/contributing/alias-conflicts) for resolution strategies.
+  </Accordion>
+</AccordionGroup>
+
+## Common Mistakes to Avoid
+
+<Warning>
+  **Invalid Hex Codes**
+  
+  ❌ `"hex": "627EEA"` - Missing # prefix
+  
+  ❌ `"hex": "#627"` - Too short (must be 6 digits)
+  
+  ❌ `"hex": "#627EEAFF"` - Too long (no alpha channel)
+  
+  ❌ `"hex": "#627eea"` - Lowercase is allowed but uppercase preferred
+  
+  ✅ `"hex": "#627EEA"` - Correct format
+</Warning>
+
+<Warning>
+  **Empty or Invalid Aliases**
+  
+  ❌ `"aliases": []` - At least one required
+  
+  ❌ `"aliases": ["eth", "eth"]` - No duplicates allowed
+  
+  ❌ `"aliases": ["eth/weth"]` - Invalid character `/`
+  
+  ✅ `"aliases": ["eth", "weth"]` - Correct format
+</Warning>
+
+<Warning>
+  **JSON Formatting Errors**
+  
+  ❌ Missing comma between properties
+  
+  ❌ Trailing comma after last entry
+  
+  ❌ Unquoted property names
+  
+  ✅ Properly formatted with all required syntax
+</Warning>
+
+## Getting Help
+
+If you encounter issues while adding colors:
+
+1. **Review the [Contribution Guidelines](/contributing/guidelines)** for general best practices
+2. **Check [CI Validation Checks](/contributing/ci-checks)** if automated tests fail
+3. **Read [Understanding Alias Conflicts](/contributing/alias-conflicts)** for conflict resolution
+4. **Open a discussion issue** if you're unsure about anything
+
+<Info>
+  The community is here to help! Don't hesitate to ask questions in your pull request.
+</Info>

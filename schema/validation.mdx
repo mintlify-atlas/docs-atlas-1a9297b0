@@ -1,0 +1,579 @@
+---
+title: Schema Validation
+description: Understanding validation rules, JSON schema definition, and automated quality checks for Color Palettes.
+---
+
+The Color Palettes project uses JSON Schema Draft 7 to validate all entries automatically. This ensures data quality, consistency, and reliability across the entire collection.
+
+## JSON Schema Definition
+
+The complete JSON schema used to validate color palette entries:
+
+```json schema.json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "patternProperties": {
+    "^[A-Za-z0-9\\s\\-_().₮]+$": {
+      "type": "object",
+      "properties": {
+        "hex": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_\\s.₮-]+$"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": ["hex", "aliases"],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+## Validation Rules Breakdown
+
+### Root Level Validation
+
+<ParamField path="type" type="string" default="object">
+  The color palettes file must be a JSON object at the root level.
+  
+  ```json
+  // ✅ Valid: Root is an object
+  {
+    "Ethereum": { ... },
+    "Uniswap": { ... }
+  }
+  
+  // ❌ Invalid: Root is an array
+  [
+    { "name": "Ethereum", ... }
+  ]
+  ```
+</ParamField>
+
+<ParamField path="additionalProperties" type="boolean" default="false">
+  Only protocol entries matching the pattern are allowed. No extra top-level properties.
+  
+  ```json
+  // ❌ Invalid: Extra top-level property
+  {
+    "version": "1.0",  // Not allowed
+    "Ethereum": {
+      "hex": "#88AAF1",
+      "aliases": ["ethereum", "eth"]
+    }
+  }
+  ```
+</ParamField>
+
+### Protocol Name Pattern
+
+<ParamField path="patternProperties" type="object">
+  Protocol names must match: `^[A-Za-z0-9\\s\\-_().₮]+$`
+  
+  **Valid Protocol Names**:
+  ```json
+  "Ethereum"           // ✅ Letters only
+  "1inch"              // ✅ Starts with number
+  "Polygon zkEVM"      // ✅ Contains space
+  "SEI (Cosmos)"       // ✅ Contains parentheses
+  "USD₮"               // ✅ Contains special character ₮
+  "Optimism-Legacy"    // ✅ Contains hyphen
+  "proof_of_play"      // ✅ Contains underscore
+  "Phi.Box"            // ✅ Contains period
+  ```
+  
+  **Invalid Protocol Names**:
+  ```json
+  "Protocol@Name"      // ❌ @ not allowed
+  "Protocol/Name"      // ❌ / not allowed
+  "Protocol#Name"      // ❌ # not allowed
+  "Protocol$Name"      // ❌ $ not allowed
+  "Protocol&Name"      // ❌ & not allowed
+  ""                   // ❌ Empty string
+  ```
+</ParamField>
+
+### Hex Color Validation
+
+<ParamField path="hex.pattern" type="string">
+  Pattern: `^#[0-9A-Fa-f]{6}$`
+  
+  **Requirements**:
+  - Must start with `#`
+  - Must be followed by exactly 6 hexadecimal characters
+  - Accepts both uppercase (A-F) and lowercase (a-f)
+  - No alpha channel (8-character codes not allowed)
+  
+  **Valid Hex Codes**:
+  ```json
+  "#88AAF1"  // ✅ Uppercase hex
+  "#f50db4"  // ✅ Lowercase hex
+  "#0052FF"  // ✅ Mixed case
+  "#000000"  // ✅ Black
+  "#FFFFFF"  // ✅ White
+  "#123ABC"  // ✅ Numbers and letters
+  ```
+  
+  **Invalid Hex Codes**:
+  ```json
+  "88AAF1"     // ❌ Missing #
+  "#88AAF"     // ❌ Only 5 characters
+  "#88AAFFFF"  // ❌ 8 characters (no alpha support)
+  "#GGG111"    // ❌ Invalid hex character 'G'
+  "#88A AF1"   // ❌ Contains space
+  "rgb(136, 170, 241)" // ❌ Not hex format
+  "blue"       // ❌ Not hex format
+  ```
+</ParamField>
+
+### Aliases Array Validation
+
+<ParamField path="aliases.minItems" type="number" default="1">
+  At least one alias is required.
+  
+  ```json
+  // ✅ Valid: Single alias
+  "aliases": ["ethereum"]
+  
+  // ✅ Valid: Multiple aliases
+  "aliases": ["ethereum", "eth", "weth"]
+  
+  // ❌ Invalid: Empty array
+  "aliases": []
+  ```
+</ParamField>
+
+<ParamField path="aliases.uniqueItems" type="boolean" default="true">
+  All aliases in the array must be unique (no duplicates).
+  
+  ```json
+  // ✅ Valid: All unique
+  "aliases": ["ethereum", "eth", "weth"]
+  
+  // ❌ Invalid: Duplicate "eth"
+  "aliases": ["ethereum", "eth", "eth", "weth"]
+  ```
+</ParamField>
+
+<ParamField path="aliases.items.pattern" type="string">
+  Pattern: `^[a-zA-Z0-9_\\s.₮-]+$`
+  
+  **Valid Alias Examples**:
+  ```json
+  "ethereum"           // ✅ Lowercase letters
+  "ETHEREUM"           // ✅ Uppercase letters
+  "eth"                // ✅ Abbreviation
+  "uniswap_v3"         // ✅ With underscore
+  "sei cosmos"         // ✅ With space
+  "avalanche c-chain"  // ✅ With hyphen
+  "usdc.n"             // ✅ With period
+  "usd-tether"         // ✅ Combined
+  ```
+  
+  **Invalid Alias Examples**:
+  ```json
+  ""                   // ❌ Empty string
+  "eth@mainnet"        // ❌ @ not allowed
+  "eth/mainnet"        // ❌ / not allowed
+  "eth#1"              // ❌ # not allowed
+  "eth(v1)"            // ❌ Parentheses not allowed in aliases
+  ```
+</ParamField>
+
+### Required Properties
+
+<ParamField path="required" type="array" default='["hex", "aliases"]'>
+  Both `hex` and `aliases` are required for every protocol entry.
+  
+  ```json
+  // ✅ Valid: Both properties present
+  {
+    "Ethereum": {
+      "hex": "#88AAF1",
+      "aliases": ["ethereum", "eth"]
+    }
+  }
+  
+  // ❌ Invalid: Missing "aliases"
+  {
+    "Ethereum": {
+      "hex": "#88AAF1"
+    }
+  }
+  
+  // ❌ Invalid: Missing "hex"
+  {
+    "Ethereum": {
+      "aliases": ["ethereum", "eth"]
+    }
+  }
+  ```
+</ParamField>
+
+### Additional Properties
+
+<ParamField path="additionalProperties" type="boolean" default="false">
+  Protocol objects can only contain `hex` and `aliases` properties. No additional fields allowed.
+  
+  ```json
+  // ✅ Valid: Only hex and aliases
+  {
+    "Ethereum": {
+      "hex": "#88AAF1",
+      "aliases": ["ethereum", "eth"]
+    }
+  }
+  
+  // ❌ Invalid: Extra property "rgb"
+  {
+    "Ethereum": {
+      "hex": "#88AAF1",
+      "rgb": "rgb(136, 170, 241)",
+      "aliases": ["ethereum", "eth"]
+    }
+  }
+  
+  // ❌ Invalid: Extra property "description"
+  {
+    "Ethereum": {
+      "hex": "#88AAF1",
+      "aliases": ["ethereum", "eth"],
+      "description": "Ethereum mainnet"
+    }
+  }
+  ```
+</ParamField>
+
+## Automated CI Validation
+
+Every pull request triggers automated validation checks to ensure data quality and prevent conflicts.
+
+<Steps>
+  <Step title="JSON Schema Validation">
+    The CI pipeline validates the entire `color-palettes.json` file against the schema definition.
+    
+    **Checks performed**:
+    - Valid JSON syntax
+    - All protocol names match the allowed pattern
+    - All hex codes are valid 6-character hex colors
+    - All aliases arrays have at least one item
+    - All aliases match the allowed pattern
+    - No duplicate aliases within the same entry
+    - No additional properties present
+  </Step>
+  
+  <Step title="Alias Conflict Detection">
+    The CI system checks for duplicate aliases across different protocols.
+    
+    ```json
+    // ❌ This will fail CI
+    {
+      "BNB": {
+        "hex": "#F3BA2F",
+        "aliases": ["bnb", "bsc"]
+      },
+      "Basis Cash": {
+        "hex": "#000000",
+        "aliases": ["bsc", "basis"]  // "bsc" conflicts!
+      }
+    }
+    ```
+    
+    **Error message**: `Alias conflict detected: "bsc" is used by both "BNB" and "Basis Cash"`
+  </Step>
+  
+  <Step title="Hex Color Format">
+    Validates that all hex codes follow the correct format and contain valid hexadecimal characters.
+    
+    ```json
+    // ❌ These will fail validation
+    "hex": "#82828"   // Only 5 characters
+    "hex": "#GGGGGG"  // Invalid hex characters
+    "hex": "88AAF1"   // Missing #
+    ```
+  </Step>
+  
+  <Step title="Required Fields Check">
+    Ensures every protocol entry includes both required fields: `hex` and `aliases`.
+    
+    ```json
+    // ❌ This will fail - missing aliases
+    {
+      "Ethereum": {
+        "hex": "#88AAF1"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Validation Examples
+
+### Complete Valid Entry
+
+<CodeGroup>
+```json Single Protocol
+{
+  "Ethereum": {
+    "hex": "#88AAF1",
+    "aliases": ["ethereum", "eth", "weth"]
+  }
+}
+```
+
+```json Multiple Protocols
+{
+  "Ethereum": {
+    "hex": "#88AAF1",
+    "aliases": ["ethereum", "eth", "weth"]
+  },
+  "Base": {
+    "hex": "#0052FF",
+    "aliases": ["base"]
+  },
+  "Arbitrum": {
+    "hex": "#12AAFF",
+    "aliases": ["arbitrum", "arbitrum one", "arb"]
+  }
+}
+```
+</CodeGroup>
+
+### Common Validation Errors
+
+<AccordionGroup>
+  <Accordion title="Missing # in Hex Code">
+    ```json
+    // ❌ Invalid
+    {
+      "Ethereum": {
+        "hex": "88AAF1",
+        "aliases": ["ethereum"]
+      }
+    }
+    ```
+    
+    **Error**: `String does not match pattern "^#[0-9A-Fa-f]{6}$"`
+    
+    **Fix**: Add `#` prefix to the hex code:
+    ```json
+    "hex": "#88AAF1"
+    ```
+  </Accordion>
+  
+  <Accordion title="Empty Aliases Array">
+    ```json
+    // ❌ Invalid
+    {
+      "Ethereum": {
+        "hex": "#88AAF1",
+        "aliases": []
+      }
+    }
+    ```
+    
+    **Error**: `Array must contain at least 1 item (minItems: 1)`
+    
+    **Fix**: Add at least one alias:
+    ```json
+    "aliases": ["ethereum"]
+    ```
+  </Accordion>
+  
+  <Accordion title="Invalid Hex Characters">
+    ```json
+    // ❌ Invalid
+    {
+      "Ethereum": {
+        "hex": "#GGHHII",
+        "aliases": ["ethereum"]
+      }
+    }
+    ```
+    
+    **Error**: `String does not match pattern "^#[0-9A-Fa-f]{6}$"`
+    
+    **Fix**: Use only valid hexadecimal characters (0-9, A-F):
+    ```json
+    "hex": "#88AAF1"
+    ```
+  </Accordion>
+  
+  <Accordion title="Duplicate Aliases in Same Entry">
+    ```json
+    // ❌ Invalid
+    {
+      "Ethereum": {
+        "hex": "#88AAF1",
+        "aliases": ["ethereum", "eth", "ethereum"]
+      }
+    }
+    ```
+    
+    **Error**: `Array items must be unique (uniqueItems: true)`
+    
+    **Fix**: Remove duplicates:
+    ```json
+    "aliases": ["ethereum", "eth"]
+    ```
+  </Accordion>
+  
+  <Accordion title="Additional Properties">
+    ```json
+    // ❌ Invalid
+    {
+      "Ethereum": {
+        "hex": "#88AAF1",
+        "aliases": ["ethereum"],
+        "website": "https://ethereum.org"
+      }
+    }
+    ```
+    
+    **Error**: `Additional properties not allowed (additionalProperties: false)`
+    
+    **Fix**: Remove extra properties:
+    ```json
+    {
+      "Ethereum": {
+        "hex": "#88AAF1",
+        "aliases": ["ethereum"]
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Incorrect Hex Code Length">
+    ```json
+    // ❌ Invalid - Too short
+    {
+      "Ethereum": {
+        "hex": "#88AAF",
+        "aliases": ["ethereum"]
+      }
+    }
+    
+    // ❌ Invalid - Too long (8 characters)
+    {
+      "Ethereum": {
+        "hex": "#88AAF1FF",
+        "aliases": ["ethereum"]
+      }
+    }
+    ```
+    
+    **Error**: `String does not match pattern "^#[0-9A-Fa-f]{6}$"`
+    
+    **Fix**: Use exactly 6 hexadecimal characters:
+    ```json
+    "hex": "#88AAF1"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Testing Validation Locally
+
+<Tip>
+Before submitting a pull request, validate your changes locally to catch errors early.
+</Tip>
+
+### Using Command Line Tools
+
+<CodeGroup>
+```bash Using ajv-cli
+# Install ajv-cli globally
+npm install -g ajv-cli
+
+# Validate color-palettes.json against schema.json
+ajv validate -s schema.json -d color-palettes.json
+```
+
+```bash Using Python jsonschema
+# Install jsonschema
+pip install jsonschema
+
+# Create validation script
+python validate.py
+```
+
+```python validate.py
+import json
+from jsonschema import validate, ValidationError
+
+# Load schema
+with open('schema.json', 'r') as f:
+    schema = json.load(f)
+
+# Load color palettes
+with open('color-palettes.json', 'r') as f:
+    data = json.load(f)
+
+# Validate
+try:
+    validate(instance=data, schema=schema)
+    print("✅ Validation successful!")
+except ValidationError as e:
+    print(f"❌ Validation failed: {e.message}")
+```
+</CodeGroup>
+
+### IDE Integration
+
+Modern code editors can validate JSON files against schemas automatically:
+
+<CodeGroup>
+```json VS Code settings.json
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["color-palettes.json"],
+      "url": "./schema.json"
+    }
+  ]
+}
+```
+
+```json In-file schema reference
+{
+  "$schema": "./schema.json",
+  "Ethereum": {
+    "hex": "#88AAF1",
+    "aliases": ["ethereum", "eth"]
+  }
+}
+```
+</CodeGroup>
+
+## Validation Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Validate Early" icon="bolt">
+    Test your changes locally before creating a pull request to catch errors immediately.
+  </Card>
+  
+  <Card title="Use Schema-Aware Editors" icon="code">
+    Configure your IDE to validate against the schema for real-time feedback.
+  </Card>
+  
+  <Card title="Check Alias Conflicts" icon="magnifying-glass">
+    Search the existing file for aliases before adding new ones to avoid conflicts.
+  </Card>
+  
+  <Card title="Follow Patterns" icon="clone">
+    Look at existing entries as examples when adding new protocols.
+  </Card>
+</CardGroup>
+
+<Note>
+The automated CI validation is the final gate before merging. All validation checks must pass for a pull request to be approved.
+</Note>

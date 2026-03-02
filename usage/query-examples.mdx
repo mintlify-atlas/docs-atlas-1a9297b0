@@ -1,0 +1,560 @@
+---
+title: 'Query Examples'
+description: 'Real-world Dune query examples showing Color Palettes in action'
+---
+
+## Overview
+
+This page provides practical examples of Dune queries that leverage Color Palettes for automatic, consistent visualization coloring. Each example includes the query, expected output, and the automatic colors that will be applied.
+
+<Tip>
+  Copy these queries and modify them for your own analytics. Colors will automatically apply based on the protocols and chains in your results.
+</Tip>
+
+## Blockchain Analytics
+
+### Cross-Chain DEX Volume Comparison
+
+Compare DEX trading volumes across multiple blockchains:
+
+```sql
+SELECT 
+  blockchain,
+  SUM(amount_usd) as volume_usd,
+  COUNT(DISTINCT tx_hash) as transaction_count,
+  COUNT(DISTINCT trader) as unique_traders
+FROM dex.trades
+WHERE block_time >= NOW() - INTERVAL '7' day
+GROUP BY blockchain
+ORDER BY volume_usd DESC
+```
+
+<AccordionGroup>
+  <Accordion title="Expected Output & Colors">
+    **Automatic Colors Applied**:
+    - **Ethereum**: #88AAF1 (slate blue)
+    - **Base**: #0052FF (blue)
+    - **Arbitrum**: #12AAFF (light blue)
+    - **Optimism**: #FF0420 (red)
+    - **Polygon**: #8A46FF (purple)
+    - **BNB**: #F3BA2F (yellow)
+    - **Solana**: #14F195 (green)
+    - **Avalanche**: #E84142 (red)
+    
+    **Sample Output**:
+    ```text
+    blockchain | volume_usd    | transaction_count | unique_traders
+    -----------+---------------+-------------------+---------------
+    ethereum   | 1,245,678,900 | 456,789          | 123,456
+    base       | 987,654,321   | 345,678          | 98,765
+    arbitrum   | 876,543,210   | 234,567          | 87,654
+    solana     | 765,432,109   | 567,890          | 234,567
+    ```
+  </Accordion>
+  
+  <Accordion title="Visualization Tips">
+    - **Best chart type**: Bar chart or pie chart
+    - **Why it works**: Each blockchain gets its official brand color automatically
+    - **Customization idea**: Override top 3 chains with gradient variations to emphasize leaders
+  </Accordion>
+</AccordionGroup>
+
+### Layer 2 Scaling Solutions Growth
+
+Track daily transaction counts across L2 solutions:
+
+```sql
+SELECT 
+  DATE_TRUNC('day', block_time) as date,
+  blockchain,
+  COUNT(DISTINCT tx_hash) as daily_transactions
+FROM transactions
+WHERE blockchain IN ('arbitrum', 'optimism', 'base', 'zksync', 'linea', 'scroll')
+  AND block_time >= NOW() - INTERVAL '30' day
+GROUP BY 1, 2
+ORDER BY date, blockchain
+```
+
+<CodeGroup>
+```text Automatic Colors
+Arbitrum → #12AAFF (light blue)
+Optimism → #FF0420 (red)
+Base → #0052FF (blue)
+ZKsync → #1E69FF (blue)
+Linea → #61DFFF (cyan)
+Scroll → #EBC28E (beige)
+```
+
+```text Visualization
+Best chart: Line chart with multiple series
+Y-axis: Daily transactions
+X-axis: Date
+Each L2 gets its own colored line
+```
+</CodeGroup>
+
+## Protocol Analytics
+
+### NFT Marketplace Market Share
+
+Analyze trading volume across major NFT marketplaces:
+
+```sql
+SELECT 
+  project as marketplace,
+  SUM(amount_usd) as volume_usd,
+  COUNT(*) as total_trades,
+  AVG(amount_usd) as avg_sale_price,
+  COUNT(DISTINCT seller) as unique_sellers,
+  COUNT(DISTINCT buyer) as unique_buyers
+FROM nft.trades
+WHERE blockchain = 'ethereum'
+  AND block_time >= NOW() - INTERVAL '30' day
+GROUP BY marketplace
+ORDER BY volume_usd DESC
+LIMIT 10
+```
+
+<Note>
+  **Automatic Colors Applied**:
+  - **OpenSea**: #2884E4 (blue)
+  - **Blur**: #FF8404 (orange)
+  - **LooksRare**: #10E464 (green)
+  - **X2Y2**: #14DBFC (cyan)
+  - **MagicEden**: #BF79F5 (purple)
+  - **Rarible**: #FFDC04 (yellow)
+  - **SuperRare**: #000000 (black)
+  - **Foundation**: #080404 (dark)
+</Note>
+
+### DEX Protocol Comparison
+
+Compare trading activity across decentralized exchanges:
+
+```sql
+SELECT 
+  project as dex_protocol,
+  blockchain,
+  SUM(amount_usd) as volume_usd,
+  COUNT(*) as swap_count,
+  COUNT(DISTINCT trader) as unique_traders
+FROM dex.trades
+WHERE block_time >= CURRENT_DATE - INTERVAL '7' day
+  AND project IN ('uniswap', '1inch')
+GROUP BY project, blockchain
+ORDER BY volume_usd DESC
+```
+
+<CardGroup cols={2}>
+  <Card title="Uniswap" icon="arrow-right-arrow-left">
+    **Color**: #F50DB4 (bright pink)
+    
+    **Aliases**: uniswap, uni
+  </Card>
+  
+  <Card title="1inch" icon="1">
+    **Color**: #0077FF (blue)
+    
+    **Aliases**: 1inch, oneinch, inch
+  </Card>
+</CardGroup>
+
+## Stablecoin Analytics
+
+### Stablecoin Market Dominance
+
+Track total supply and market share of major stablecoins:
+
+```sql
+SELECT 
+  symbol as stablecoin,
+  SUM(amount) as total_supply,
+  COUNT(DISTINCT holder) as unique_holders
+FROM tokens.balances
+WHERE symbol IN ('USDT', 'USDC', 'DAI', 'USDS', 'USDe', 'crvUSD')
+  AND blockchain = 'ethereum'
+  AND date = CURRENT_DATE
+GROUP BY symbol
+ORDER BY total_supply DESC
+```
+
+<AccordionGroup>
+  <Accordion title="Automatic Stablecoin Colors">
+    ```json
+    {
+      "USDT": "#26A17B",   // Tether green
+      "USDC": "#2775CA",   // Circle blue
+      "DAI": "#F2B705",    // MakerDAO yellow/gold
+      "USDS": "#00A6D6",   // Sky cyan
+      "USDe": "#6F3FF5",   // Ethena purple
+      "crvUSD": "#E1064C" // Curve red
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Query Variations">
+    **Track over time**:
+    ```sql
+    SELECT 
+      DATE_TRUNC('day', block_time) as date,
+      symbol,
+      SUM(amount_usd) as daily_volume
+    FROM transfers.stablecoins
+    WHERE symbol IN ('USDT', 'USDC', 'DAI')
+    GROUP BY 1, 2
+    ORDER BY date
+    ```
+    
+    **Cross-chain comparison**:
+    ```sql
+    SELECT 
+      blockchain,
+      symbol,
+      SUM(amount) as supply
+    FROM tokens.balances
+    WHERE symbol IN ('USDT', 'USDC')
+    GROUP BY blockchain, symbol
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Stablecoin Transfer Volumes
+
+Analyze daily transfer volumes for top stablecoins:
+
+```sql
+SELECT 
+  symbol,
+  DATE_TRUNC('day', block_time) as date,
+  SUM(amount_usd) as transfer_volume_usd,
+  COUNT(*) as transfer_count
+FROM tokens.transfers
+WHERE symbol IN ('usdt', 'usdc', 'dai', 'usds')
+  AND blockchain = 'ethereum'
+  AND block_time >= NOW() - INTERVAL '90' day
+GROUP BY symbol, date
+ORDER BY date, symbol
+```
+
+<Note>
+  Note that symbols are lowercase in this query (`usdt`, `usdc`), but Color Palettes will still match them correctly because matching is **case-insensitive**.
+</Note>
+
+## Using the evm_\<color:*\> Syntax
+
+### Protocol Versions with Color Matching
+
+Track different versions of the same protocol while maintaining brand colors:
+
+```sql
+SELECT 
+  CASE 
+    WHEN version = '2' THEN 'evm_<color:uniswap> v2'
+    WHEN version = '3' THEN 'evm_<color:uniswap> v3'
+    WHEN version = '4' THEN 'evm_<color:uniswap> v4'
+  END as protocol_version,
+  SUM(amount_usd) as volume_usd,
+  COUNT(*) as trade_count
+FROM dex.trades
+WHERE project = 'uniswap'
+  AND block_time >= NOW() - INTERVAL '7' day
+GROUP BY version
+ORDER BY volume_usd DESC
+```
+
+<Tip>
+  The evm color syntax ensures all versions match to Uniswap's brand color (#F50DB4) even though the labels include version numbers.
+</Tip>
+
+### Multi-Chain Protocol Analysis
+
+Compare the same protocol across different chains:
+
+```sql
+SELECT 
+  CONCAT('evm_<color:', blockchain, '> - Uniswap') as chain_protocol,
+  SUM(amount_usd) as volume_usd,
+  COUNT(DISTINCT trader) as unique_traders
+FROM dex.trades
+WHERE project = 'uniswap'
+  AND block_time >= NOW() - INTERVAL '30' day
+GROUP BY blockchain
+ORDER BY volume_usd DESC
+```
+
+<CodeGroup>
+```text Output Labels
+evm_\<color:ethereum\> - Uniswap
+evm_\<color:polygon\> - Uniswap
+evm_\<color:arbitrum\> - Uniswap
+evm_\<color:optimism\> - Uniswap
+evm_\<color:base\> - Uniswap
+```
+
+```text Applied Colors
+Ethereum (#88AAF1) - Uniswap
+Polygon (#8A46FF) - Uniswap
+Arbitrum (#12AAFF) - Uniswap
+Optimism (#FF0420) - Uniswap
+Base (#0052FF) - Uniswap
+```
+</CodeGroup>
+
+## Advanced Analytics
+
+### Liquid Staking Provider Comparison
+
+Compare ETH staking volumes across providers:
+
+```sql
+SELECT 
+  provider,
+  SUM(amount_eth) as total_staked_eth,
+  SUM(amount_usd) as total_staked_usd,
+  COUNT(DISTINCT staker) as unique_stakers,
+  AVG(amount_eth) as avg_stake_size
+FROM ethereum.staking_deposits
+WHERE block_time >= NOW() - INTERVAL '30' day
+  AND provider IN ('lido', 'rocketpool', 'frax', 'coinbase', 'swell', 'etherfi', 'renzo')
+GROUP BY provider
+ORDER BY total_staked_eth DESC
+```
+
+<AccordionGroup>
+  <Accordion title="Provider Colors">
+    **Automatic Colors**:
+    - **Lido**: #4DB0F2 (light blue)
+    - **RocketPool**: #FB8562 (orange)
+    - **FraxFinance**: #080404 (black)
+    - **Coinbase**: #0854FC (blue)
+    - **Swell**: #2040CD (deep blue)
+    - **etherfi**: #2F1769 (dark purple)
+    - **Renzo**: #C5FE5B (lime green)
+  </Accordion>
+  
+  <Accordion title="Analysis Tips">
+    This query is perfect for:
+    - **Pie chart**: Show market share by provider
+    - **Bar chart**: Compare total staked amounts
+    - **Time series**: Track growth trends over time
+    
+    Each provider automatically gets their brand color, making the visualization immediately recognizable.
+  </Accordion>
+</AccordionGroup>
+
+### Bridge Volume Analysis
+
+Track cross-chain bridge volumes:
+
+```sql
+SELECT 
+  source_chain,
+  destination_chain,
+  SUM(amount_usd) as bridge_volume_usd,
+  COUNT(*) as bridge_transactions,
+  COUNT(DISTINCT sender) as unique_users
+FROM bridges.transfers
+WHERE block_time >= NOW() - INTERVAL '7' day
+GROUP BY source_chain, destination_chain
+ORDER BY bridge_volume_usd DESC
+LIMIT 20
+```
+
+<Note>
+  **Visualization**: Use a Sankey diagram or grouped bar chart. Each chain gets its brand color:
+  - **Ethereum** → **Arbitrum**: #88AAF1 → #12AAFF
+  - **Ethereum** → **Base**: #88AAF1 → #0052FF
+  - **Polygon** → **Ethereum**: #8A46FF → #88AAF1
+</Note>
+
+## Exchange Analytics
+
+### Centralized Exchange Deposit Trends
+
+Monitor deposits to major exchanges:
+
+```sql
+SELECT 
+  exchange,
+  DATE_TRUNC('day', block_time) as date,
+  SUM(amount_usd) as daily_deposits_usd,
+  COUNT(*) as deposit_count,
+  COUNT(DISTINCT sender) as unique_depositors
+FROM ethereum.deposits
+WHERE exchange IN ('coinbase', 'binance', 'kraken', 'bybit', 'okx')
+  AND block_time >= NOW() - INTERVAL '30' day
+GROUP BY exchange, date
+ORDER BY date, exchange
+```
+
+<CodeGroup>
+```json Exchange Colors
+{
+  "coinbase": "#0854FC",  // Coinbase blue
+  "binance": "#F8BC0C",   // Binance yellow
+  "kraken": "#5844DC",    // Kraken purple
+  "bybit": "#F7A600",     // Bybit orange
+  "okx": "#080404"        // OKX black
+}
+```
+
+```text Best Visualization
+Chart type: Stacked area chart
+Y-axis: Daily deposits (USD)
+X-axis: Date
+Series: One per exchange (auto-colored)
+```
+</CodeGroup>
+
+## Protocol Category Analysis
+
+### DeFi Category Breakdown
+
+Analyze activity by protocol category:
+
+```sql
+SELECT 
+  category,
+  COUNT(DISTINCT project) as protocol_count,
+  SUM(volume_usd) as total_volume,
+  COUNT(DISTINCT user_address) as unique_users
+FROM defi.protocol_stats
+WHERE date >= CURRENT_DATE - INTERVAL '30' day
+GROUP BY category
+ORDER BY total_volume DESC
+```
+
+<AccordionGroup>
+  <Accordion title="Category Colors">
+    When your data includes generic categories, Color Palettes has you covered:
+    
+    ```json
+    {
+      "dex": "#cc61b0",                    // Pink
+      "lending": "#5d69b1",                // Blue
+      "bridge": "#52bca3",                 // Teal
+      "yield": "#73af48",                  // Green
+      "cex": "#f2b701",                    // Yellow
+      "treasury_or_governance": "#f4603e" // Orange
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Time-Series Analysis
+
+### Protocol Adoption Over Time
+
+Track new user adoption for top protocols:
+
+```sql
+SELECT 
+  DATE_TRUNC('week', first_interaction) as week,
+  protocol,
+  COUNT(DISTINCT user_address) as new_users
+FROM (
+  SELECT 
+    trader as user_address,
+    project as protocol,
+    MIN(block_time) as first_interaction
+  FROM dex.trades
+  WHERE project IN ('uniswap', '1inch')
+  GROUP BY trader, project
+) user_first_seen
+WHERE first_interaction >= NOW() - INTERVAL '180' day
+GROUP BY week, protocol
+ORDER BY week, protocol
+```
+
+<Tip>
+  Perfect for a **line chart** showing weekly new user growth. Uniswap (#F50DB4) and 1inch (#0077FF) lines will be automatically colored.
+</Tip>
+
+## Best Practices
+
+<Steps>
+  <Step title="Use consistent naming">
+    Reference protocols and chains using their canonical names or aliases from the Color Palettes schema for automatic color matching.
+  </Step>
+  
+  <Step title="Leverage case-insensitivity">
+    Don't worry about capitalization - `ethereum`, `Ethereum`, and `ETHEREUM` all match the same color.
+  </Step>
+  
+  <Step title="Use special syntax for complex labels">
+    When you need to append version numbers, chain names, or other context to labels, use the special evm color syntax to maintain color matching.
+  </Step>
+  
+  <Step title="Filter for known protocols">
+    When possible, filter your queries to include only protocols/chains in the Color Palettes schema to ensure all results get colored.
+  </Step>
+  
+  <Step title="Order by significance">
+    Order your results by volume, transaction count, or other metrics to put the most important (and colorful) data at the top of your visualizations.
+  </Step>
+</Steps>
+
+## Common Patterns
+
+### Pattern 1: Chain Aggregation
+
+```sql
+SELECT 
+  blockchain,
+  <aggregation_metric>
+FROM <table>
+GROUP BY blockchain
+```
+
+**Result**: Each blockchain gets its official brand color
+
+### Pattern 2: Protocol Comparison
+
+```sql
+SELECT 
+  project as protocol,
+  <aggregation_metric>
+FROM <table>
+WHERE project IN (<list_of_protocols>)
+GROUP BY project
+```
+
+**Result**: Each protocol gets its brand color from the palettes
+
+### Pattern 3: Time Series by Entity
+
+```sql
+SELECT 
+  DATE_TRUNC('day', block_time) as date,
+  <entity_column>,
+  <aggregation_metric>
+FROM <table>
+GROUP BY date, <entity_column>
+```
+
+**Result**: Multi-line chart with each entity colored by its brand
+
+### Pattern 4: Category Analysis
+
+```sql
+SELECT 
+  category_type,
+  <aggregation_metric>
+FROM <table>
+WHERE category_type IN ('dex', 'lending', 'bridge', etc.)
+GROUP BY category_type
+```
+
+**Result**: Generic categories get standardized colors from the palette
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Automatic Application" icon="wand-magic-sparkles" href="/usage/automatic-application">
+    Learn how automatic color matching works
+  </Card>
+  
+  <Card title="Customization" icon="palette" href="/usage/customization">
+    Override and restore colors as needed
+  </Card>
+</CardGroup>

@@ -1,0 +1,637 @@
+---
+title: Understanding Alias Conflicts
+description: Learn how to identify, prevent, and resolve alias conflicts in the Color Palettes project
+---
+
+Alias conflicts occur when the same alias is associated with multiple protocols. This guide explains how conflicts are detected, why they matter, and how to resolve them.
+
+## What is an Alias Conflict?
+
+An alias conflict happens when a single alias string could refer to more than one protocol in the color palettes collection. This creates ambiguity in the automatic color matching system used by Dune Analytics.
+
+### Real-World Conflict Examples
+
+<AccordionGroup>
+  <Accordion title="Example 1: BSC Conflict">
+    **The Conflict**:
+    - "BSC" could refer to **Binance Smart Chain** (now BNB Chain)
+    - "BSC" could refer to **Basis Cash** (algorithmic stablecoin protocol)
+    
+    **Why It's Problematic**:
+    When a Dune query returns data with "BSC" in the protocol field, the system cannot determine which color to apply.
+    
+    **Current Resolution**:
+    ```json
+    "BNB": {
+      "hex": "#F3BA2F",
+      "aliases": ["bnb", "bsc"]  // BSC assigned to more common usage
+    }
+    ```
+    
+    Basis Cash would need to use alternative aliases like `"basis"`, `"basis_cash"`.
+  </Accordion>
+  
+  <Accordion title="Example 2: LINK Conflict">
+    **The Conflict**:
+    - "LINK" could refer to **Chainlink** (oracle network)
+    - "LINK" could refer to **Link Protocol** (hypothetical)
+    
+    **Resolution Strategy**:
+    Assign the shorter alias to the more widely used protocol:
+    
+    ```json
+    "Chainlink": {
+      "hex": "#375BD2",
+      "aliases": ["chainlink", "link"]
+    }
+    ```
+    
+    Less common protocols use more specific aliases:
+    ```json
+    "Link Protocol": {
+      "hex": "#HEXCODE",
+      "aliases": ["link_protocol", "linkprotocol"]
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Example 3: Version-Specific Conflicts">
+    **The Conflict**:
+    Multiple versions of the same protocol might share aliases:
+    - Uniswap V2
+    - Uniswap V3
+    - Uniswap V4
+    
+    **Resolution Strategy**:
+    Use the main protocol entry with general aliases, add version-specific aliases only when needed:
+    
+    ```json
+    "Uniswap": {
+      "hex": "#F50DB4",
+      "aliases": ["uniswap", "uni"]
+    }
+    ```
+    
+    <Info>
+      For version-specific coloring needs, users can override colors manually in their visualizations.
+    </Info>
+  </Accordion>
+</AccordionGroup>
+
+## How Conflicts Are Detected
+
+### Automated CI Validation
+
+The repository uses automated GitHub Actions to detect duplicate aliases on every pull request.
+
+<Tabs>
+  <Tab title="Detection Logic">
+    The CI workflow extracts all aliases and checks for duplicates using case-insensitive comparison:
+    
+    ```bash
+    # Extract all aliases and their protocols, then check for duplicates
+    jq -r 'to_entries | .[] | .key as $protocol | .value.aliases[] | [$protocol, .] | @tsv' color-palettes.json | \
+    awk -F '\t' '{
+      # Store the original alias
+      original_alias = $2
+      # Convert alias to lowercase for case-insensitive comparison
+      alias = tolower(original_alias)
+      
+      # Check if this exact alias has been seen before (only comparing aliases)
+      if (seen[alias]) {
+        printf "Error: Duplicate alias \"%s\" found in protocols \"%s\" and \"%s\"\n", 
+               original_alias, seen[alias], $1
+        exit 1
+      }
+      
+      # Store the protocol for this alias
+      seen[alias] = $1
+    }'
+    ```
+    
+    **How It Works**:
+    1. Extracts each protocol and its aliases
+    2. Converts all aliases to lowercase for comparison
+    3. Tracks which protocol "owns" each alias
+    4. Exits with error if duplicate found
+  </Tab>
+  
+  <Tab title="CI Workflow">
+    The complete validation workflow from `.github/workflows/validate-schema.yml`:
+    
+    ```yaml
+    name: Validate Color Palette Schema
+    
+    on:
+      push:
+        branches: [ main ]
+        paths:
+          - '*.json'
+          - 'palettes/**/*.json'
+      pull_request:
+        branches: [ main ]
+        paths:
+          - '*.json'
+          - 'palettes/**/*.json'
+    
+    jobs:
+      validate:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+    
+          - name: Validate JSON Schema
+            uses: cardinalby/schema-validator-action@v1
+            with:
+              schema: schema.json
+              file: color-palettes.json
+    
+          - name: Check for duplicate aliases
+            run: |
+              # Extract all aliases and their protocols, then check for duplicates
+              jq -r 'to_entries | .[] | .key as $protocol | .value.aliases[] | [$protocol, .] | @tsv' color-palettes.json | \
+              awk -F '\t' '{
+                # Store the original alias
+                original_alias = $2
+                # Convert alias to lowercase for case-insensitive comparison
+                alias = tolower(original_alias)
+                
+                # Check if this exact alias has been seen before (only comparing aliases)
+                if (seen[alias]) {
+                  printf "Error: Duplicate alias \"%s\" found in protocols \"%s\" and \"%s\"\n", 
+                         original_alias, seen[alias], $1
+                  exit 1
+                }
+                
+                # Store the protocol for this alias
+                seen[alias] = $1
+              }'
+    ```
+    
+    **Triggers**:
+    - Every push to `main` branch affecting JSON files
+    - Every pull request to `main` branch affecting JSON files
+    
+    **Validation Steps**:
+    1. **JSON Schema Validation**: Ensures structure matches schema
+    2. **Duplicate Alias Check**: Detects conflicting aliases
+  </Tab>
+  
+  <Tab title="Example CI Failure">
+    When a duplicate alias is detected, the CI check fails with a clear error message:
+    
+    ```bash
+    Error: Duplicate alias "bsc" found in protocols "Binance Smart Chain" and "Basis Cash"
+    ```
+    
+    **What Happens**:
+    1. ❌ CI check fails
+    2. 🚫 Pull request is blocked from merging
+    3. 📝 Author receives notification
+    4. 🔧 Changes must be made to resolve conflict
+    
+    **GitHub PR Status**:
+    ```
+    ❌ Validate Color Palette Schema
+       Check for duplicate aliases — Failed
+       
+       Error: Duplicate alias "bsc" found in protocols 
+       "BNB" and "Basis Cash"
+    ```
+  </Tab>
+</Tabs>
+
+## Conflict Resolution Process
+
+<Steps>
+  <Step title="Identify the Conflict">
+    When CI fails, review the error message to identify:
+    
+    1. **The conflicting alias**: Which alias is duplicated
+    2. **Affected protocols**: Which two (or more) protocols share it
+    
+    <CodeGroup>
+    ```bash CI Error Example
+    Error: Duplicate alias "bsc" found in protocols "Binance Smart Chain" and "Basis Cash"
+    ```
+    
+    ```bash Multiple Conflicts
+    Error: Duplicate alias "op" found in protocols "Optimism" and "Ocean Protocol"
+    Error: Duplicate alias "link" found in protocols "Chainlink" and "Link Protocol"
+    ```
+    </CodeGroup>
+  </Step>
+  
+  <Step title="Analyze Protocol Priority">
+    Determine which protocol should get priority for the conflicting alias:
+    
+    <Tabs>
+      <Tab title="Usage Frequency">
+        **Most Common Wins**:
+        
+        Which protocol appears more frequently in Dune Analytics queries?
+        
+        <CardGroup cols={2}>
+          <Card title="High Priority" icon="star">
+            Major chains, top DEXes, widely-used protocols
+          </Card>
+          <Card title="Lower Priority" icon="circle">
+            Niche protocols, testnets, deprecated projects
+          </Card>
+        </CardGroup>
+        
+        **Example**:
+        - "BSC" → Binance Smart Chain (high usage) ✅
+        - Basis Cash must use alternative alias ❌
+      </Tab>
+      
+      <Tab title="Official Naming">
+        **Official Abbreviation Wins**:
+        
+        Which protocol officially uses this abbreviation?
+        
+        - Check official documentation
+        - Review brand guidelines
+        - Verify social media handles
+        
+        **Example**:
+        - "OP" → Optimism (official ticker: OP) ✅
+        - Ocean Protocol uses "OCEAN" officially ✅
+      </Tab>
+      
+      <Tab title="Community Convention">
+        **Established Usage Wins**:
+        
+        What does the Dune community already use?
+        
+        - Review existing dashboards
+        - Check query patterns
+        - Consider established conventions
+      </Tab>
+    </Tabs>
+  </Step>
+  
+  <Step title="Choose Resolution Strategy">
+    Select the appropriate strategy based on the conflict:
+    
+    <AccordionGroup>
+      <Accordion title="Strategy 1: Remove Conflicting Alias" icon="trash">
+        **When to Use**: The alias is less important for one protocol
+        
+        **Before**:
+        ```json
+        "Binance Smart Chain": {
+          "hex": "#F3BA2F",
+          "aliases": ["bsc", "bnb"]
+        },
+        "Basis Cash": {
+          "hex": "#000000",
+          "aliases": ["bsc", "basis"]  // ❌ Conflict
+        }
+        ```
+        
+        **After**:
+        ```json
+        "Binance Smart Chain": {
+          "hex": "#F3BA2F",
+          "aliases": ["bsc", "bnb"]
+        },
+        "Basis Cash": {
+          "hex": "#000000",
+          "aliases": ["basis", "basis_cash"]  // ✅ Resolved
+        }
+        ```
+      </Accordion>
+      
+      <Accordion title="Strategy 2: Use More Specific Aliases" icon="tag">
+        **When to Use**: Both protocols need clear identification
+        
+        **Before**:
+        ```json
+        "Optimism": {
+          "hex": "#FF0420",
+          "aliases": ["optimism", "op"]
+        },
+        "Ocean Protocol": {
+          "hex": "#141414",
+          "aliases": ["ocean", "op"]  // ❌ Conflict
+        }
+        ```
+        
+        **After**:
+        ```json
+        "Optimism": {
+          "hex": "#FF0420",
+          "aliases": ["optimism", "op", "op mainnet"]
+        },
+        "Ocean Protocol": {
+          "hex": "#141414",
+          "aliases": ["ocean", "ocean_protocol"]  // ✅ Resolved
+        }
+        ```
+      </Accordion>
+      
+      <Accordion title="Strategy 3: Add Context to Protocol Name" icon="brackets-curly">
+        **When to Use**: Same protocol on different chains
+        
+        **Before**:
+        ```json
+        "Sei": {
+          "hex": "#9E201B",
+          "aliases": ["sei"]  // ❌ Conflict with below
+        },
+        "Sei": {
+          "hex": "#B52A2A",
+          "aliases": ["sei"]  // ❌ Duplicate protocol name
+        }
+        ```
+        
+        **After**:
+        ```json
+        "Sei": {
+          "hex": "#9E201B",
+          "aliases": ["sei"]
+        },
+        "SEI (Cosmos)": {
+          "hex": "#B52A2A",
+          "aliases": ["sei cosmos", "sei network"]  // ✅ Resolved
+        }
+        ```
+      </Accordion>
+      
+      <Accordion title="Strategy 4: Discuss Special Cases" icon="comments">
+        **When to Use**: Unclear which protocol should have priority
+        
+        **Process**:
+        1. Comment on your PR explaining the conflict
+        2. Tag maintainers for input
+        3. Provide usage data if available
+        4. Wait for community consensus
+        
+        **Example Comment**:
+        ```markdown
+        ## Alias Conflict Discussion
+        
+        I'm adding Protocol X which commonly uses the "ABC" abbreviation.
+        However, this conflicts with Protocol Y which already has "abc" as an alias.
+        
+        **Protocol X**: 
+        - Usage: ~500 queries/month in Dune
+        - Official docs use "ABC"
+        
+        **Protocol Y**:
+        - Usage: ~50 queries/month in Dune
+        - Official docs use "Protocol-Y"
+        
+        **Recommendation**: Assign "abc" to Protocol X, update Protocol Y to use "protocol_y"
+        
+        Thoughts?
+        ```
+      </Accordion>
+    </AccordionGroup>
+  </Step>
+  
+  <Step title="Update Your Pull Request">
+    Make the necessary changes to resolve the conflict:
+    
+    ```bash
+    # Edit color-palettes.json with your resolution
+    nano color-palettes.json
+    
+    # Validate the changes
+    cat color-palettes.json | jq .
+    
+    # Commit the fix
+    git add color-palettes.json
+    git commit -m "Resolve alias conflict: [brief description]"
+    
+    # Push the update
+    git push origin your-branch-name
+    ```
+    
+    <Info>
+      CI checks will automatically re-run when you push changes. Monitor the results to confirm the conflict is resolved.
+    </Info>
+  </Step>
+  
+  <Step title="Verify Resolution">
+    Confirm that:
+    
+    <Check>
+      - [ ] CI checks now pass
+      - [ ] No duplicate aliases remain
+      - [ ] Both protocols have at least one unique alias
+      - [ ] Aliases accurately represent the protocols
+      - [ ] Changes are documented in PR description
+    </Check>
+  </Step>
+</Steps>
+
+## Best Practices for Preventing Conflicts
+
+<CardGroup cols={2}>
+  <Card title="Research Before Adding" icon="magnifying-glass">
+    Before creating a PR, search the existing JSON for potential conflicts:
+    
+    ```bash
+    # Search for specific alias
+    cat color-palettes.json | jq -r '.[] | .aliases[]' | grep -i "your_alias"
+    ```
+  </Card>
+  
+  <Card title="Use Specific Aliases" icon="bullseye">
+    When possible, use specific, unambiguous aliases:
+    
+    - ✅ `"uniswap_v3"` instead of just `"v3"`
+    - ✅ `"arbitrum_nova"` instead of just `"nova"`
+    - ✅ `"polygon_pos"` instead of just `"polygon"`
+  </Card>
+  
+  <Card title="Include Protocol Name" icon="tag">
+    Always include the full protocol name (lowercase) as an alias:
+    
+    ```json
+    "Optimism": {
+      "hex": "#FF0420",
+      "aliases": ["optimism", "op"]  // ✅ Full name included
+    }
+    ```
+  </Card>
+  
+  <Card title="Test Against Common Abbreviations" icon="spell-check">
+    Avoid common two-letter abbreviations that might conflict:
+    
+    - ❌ `"op"` - Could be Optimism or Ocean Protocol
+    - ❌ `"ai"` - Too generic
+    - ❌ `"db"` - Too generic
+    
+    Use three+ letter aliases when possible.
+  </Card>
+</CardGroup>
+
+## Common Conflict Scenarios
+
+<Tabs>
+  <Tab title="Chain vs Protocol">
+    **Scenario**: A protocol shares a name with a blockchain
+    
+    **Example**:
+    - Manta Network (L1 chain)
+    - Manta Protocol (privacy protocol)
+    
+    **Resolution**:
+    ```json
+    "Manta": {
+      "hex": "#0091FF",
+      "aliases": ["manta"]  // Assign to more common usage
+    },
+    "Manta Protocol": {
+      "hex": "#HEXCODE",
+      "aliases": ["manta_protocol", "mantaprotocol"]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Ticker vs Name">
+    **Scenario**: Protocol ticker conflicts with another protocol name
+    
+    **Example**:
+    - LINK (Chainlink ticker)
+    - Link (hypothetical protocol name)
+    
+    **Resolution**:
+    ```json
+    "Chainlink": {
+      "hex": "#375BD2",
+      "aliases": ["chainlink", "link"]  // More widely used
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Version Conflicts">
+    **Scenario**: Multiple versions of same protocol
+    
+    **Example**:
+    - Uniswap V2
+    - Uniswap V3
+    
+    **Resolution**:
+    Use single entry with general aliases:
+    ```json
+    "Uniswap": {
+      "hex": "#F50DB4",
+      "aliases": ["uniswap", "uni"]
+    }
+    ```
+    
+    <Note>
+      Version-specific coloring should be handled in individual visualizations, not in the global palette.
+    </Note>
+  </Tab>
+  
+  <Tab title="Rebranding">
+    **Scenario**: Protocol rebrands but old name persists
+    
+    **Example**:
+    - Binance Smart Chain → BNB Chain
+    
+    **Resolution**:
+    Include both old and new names:
+    ```json
+    "BNB": {
+      "hex": "#F3BA2F",
+      "aliases": ["bnb", "bsc", "binance smart chain"]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Testing for Conflicts Locally
+
+Before submitting your PR, you can test for conflicts locally:
+
+<CodeGroup>
+```bash Shell Script
+#!/bin/bash
+# Save as check-duplicates.sh
+
+jq -r 'to_entries | .[] | .key as $protocol | .value.aliases[] | [$protocol, .] | @tsv' color-palettes.json | \
+awk -F '\t' '{
+  original_alias = $2
+  alias = tolower(original_alias)
+  
+  if (seen[alias]) {
+    printf "Error: Duplicate alias \"%s\" found in protocols \"%s\" and \"%s\"\n", 
+           original_alias, seen[alias], $1
+    exit 1
+  }
+  
+  seen[alias] = $1
+}' && echo "✓ No duplicate aliases found"
+```
+
+```python Python Script
+import json
+from collections import defaultdict
+
+with open('color-palettes.json', 'r') as f:
+    data = json.load(f)
+
+alias_map = defaultdict(list)
+
+for protocol, details in data.items():
+    for alias in details['aliases']:
+        alias_map[alias.lower()].append(protocol)
+
+conflicts = {alias: protocols for alias, protocols in alias_map.items() if len(protocols) > 1}
+
+if conflicts:
+    print("❌ Duplicate aliases found:")
+    for alias, protocols in conflicts.items():
+        print(f"  '{alias}' in: {', '.join(protocols)}")
+else:
+    print("✓ No duplicate aliases found")
+```
+
+```javascript Node.js Script
+const fs = require('fs');
+
+const data = JSON.parse(fs.readFileSync('color-palettes.json', 'utf8'));
+const aliasMap = new Map();
+
+for (const [protocol, details] of Object.entries(data)) {
+  for (const alias of details.aliases) {
+    const lowerAlias = alias.toLowerCase();
+    if (!aliasMap.has(lowerAlias)) {
+      aliasMap.set(lowerAlias, []);
+    }
+    aliasMap.get(lowerAlias).push(protocol);
+  }
+}
+
+const conflicts = Array.from(aliasMap.entries())
+  .filter(([_, protocols]) => protocols.length > 1);
+
+if (conflicts.length > 0) {
+  console.log('❌ Duplicate aliases found:');
+  conflicts.forEach(([alias, protocols]) => {
+    console.log(`  '${alias}' in: ${protocols.join(', ')}`);
+  });
+} else {
+  console.log('✓ No duplicate aliases found');
+}
+```
+</CodeGroup>
+
+## Getting Help with Conflicts
+
+If you're unsure how to resolve a conflict:
+
+1. **Comment on your PR** describing the conflict and asking for guidance
+2. **Tag maintainers** for input on priority decisions
+3. **Provide context** about both protocols' usage and official naming
+4. **Be patient** - complex conflicts may require community discussion
+
+<Info>
+  Conflict resolution is collaborative. Maintainers are here to help you find the best solution.
+</Info>

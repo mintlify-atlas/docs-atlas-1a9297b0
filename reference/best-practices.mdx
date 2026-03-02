@@ -1,0 +1,317 @@
+---
+title: Best Practices
+description: Guidelines for using and contributing to the Color Palettes project
+---
+
+Follow these best practices to maintain consistency in your visualizations and contribute effectively to the Color Palettes project.
+
+## Using Color Palettes
+
+### Automatic Color Matching
+
+Color Palettes automatically applies brand colors to your Dune visualizations when protocol names are detected in your query results.
+
+<Note>
+  Colors are matched using protocol aliases (case-insensitive). The system automatically detects and applies the correct colors based on your data.
+</Note>
+
+#### How Matching Works
+
+Considering this schema example:
+
+```json
+{
+  "Ethereum": {
+    "hex": "#82828",
+    "aliases": ["eth", "weth"]
+  }
+}
+```
+
+**These will match:**
+- `Eth`
+- `eth`
+- `WeTh`
+- `evm_<color:eth>` (special case allowing string prefixes)
+
+**These will NOT match:**
+- `ethereum` (not in aliases)
+- `evm<clor:eth>` (typo in special syntax)
+- `color:eth` (missing prefix delimiter)
+
+### Customization Control
+
+You have full control over visualization colors:
+
+<AccordionGroup>
+  <Accordion title="Override Colors">
+    You can override any automatically applied color with your preferred choice directly in the Dune visualization editor.
+    
+    1. Select the element in your visualization
+    2. Choose a custom color from the color picker
+    3. Your custom color will persist for that visualization
+  </Accordion>
+  
+  <Accordion title="Restore Default Colors">
+    Easily revert back to the standard Color Palettes at any time:
+    
+    1. Open your visualization settings
+    2. Click the **Restore colors** button
+    3. All colors will be reset to the Color Palettes defaults
+  </Accordion>
+</AccordionGroup>
+
+### Visualization Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Maintain Consistency" icon="palette">
+    Use the same colors for protocols across all your dashboards to help users quickly recognize patterns.
+  </Card>
+  
+  <Card title="Consider Accessibility" icon="universal-access">
+    Ensure sufficient color contrast for readability. Test your visualizations for color-blind accessibility.
+  </Card>
+  
+  <Card title="Use Official Colors" icon="badge-check">
+    Always use the official brand colors when available to maintain brand integrity and recognition.
+  </Card>
+  
+  <Card title="Document Overrides" icon="file-lines">
+    If you override colors for specific reasons, document why in your dashboard description.
+  </Card>
+</CardGroup>
+
+## Contributing to Color Palettes
+
+The Color Palettes project is community-driven. Your contributions help maintain consistency across all Dune Analytics visualizations.
+
+### What You Can Contribute
+
+<Steps>
+  <Step title="Submit New Protocol Colors">
+    Add colors for protocols not yet in the collection. Ensure you use the official brand color from the protocol's brand guidelines.
+  </Step>
+  
+  <Step title="Update Existing Colors">
+    If a protocol has updated their brand colors, submit an update with a reference to the official brand guidelines.
+  </Step>
+  
+  <Step title="Add New Aliases">
+    Add common variations of protocol names to improve automatic matching in queries.
+  </Step>
+  
+  <Step title="Report Inconsistencies">
+    Found incorrect colors or aliases? Report them via GitHub issues.
+  </Step>
+</Steps>
+
+### Schema Requirements
+
+When contributing, follow this JSON schema structure:
+
+```json
+{
+  "protocol_name": {
+    "hex": "#color_code",
+    "aliases": ["alias1", "alias2"]
+  }
+}
+```
+
+<ResponseField name="protocol_name" type="string" required>
+  The official name of the protocol or chain. Use proper capitalization as shown in the protocol's official branding.
+</ResponseField>
+
+<ResponseField name="hex" type="string" required>
+  The hex color code of the protocol's primary brand color. Must be a valid 6-character hex code starting with `#`.
+</ResponseField>
+
+<ResponseField name="aliases" type="array" required>
+  Common variations of the protocol name used in queries. Include:
+  - Lowercase versions
+  - Common abbreviations
+  - Network variations (e.g., "uniswap_v2", "uniswap_v3")
+  - Chain-specific names
+</ResponseField>
+
+### Handling Alias Conflicts
+
+Alias conflicts occur when the same alias is associated with multiple protocols.
+
+<Warning>
+  The repository includes automated CI checks that will block pull requests with alias conflicts. Resolve these before your PR can be merged.
+</Warning>
+
+#### Common Conflict Examples
+
+```json
+// ❌ This will fail CI
+{
+  "Binance Smart Chain": {
+    "hex": "#F3BA2F",
+    "aliases": ["bsc", "bnb"]
+  },
+  "Basis Cash": {
+    "hex": "#000000",
+    "aliases": ["bsc", "basis"]  // "bsc" already exists!
+  }
+}
+```
+
+```json
+// ✅ This will pass CI
+{
+  "Binance Smart Chain": {
+    "hex": "#F3BA2F",
+    "aliases": ["bsc", "bnb", "binance_smart_chain"]
+  },
+  "Basis Cash": {
+    "hex": "#000000",
+    "aliases": ["basis", "basis_cash"]  // Unique aliases
+  }
+}
+```
+
+#### Automated CI Checks
+
+Every pull request runs automated validation to ensure:
+
+<Checks>
+  <Check>No duplicate aliases across different protocols</Check>
+  <Check>Valid hex color codes (6 characters, starting with #)</Check>
+  <Check>JSON schema validation</Check>
+  <Check>Required fields presence</Check>
+</Checks>
+
+#### Resolution Process
+
+<Steps>
+  <Step title="CI Detects Conflict">
+    Automated checks run and identify the duplicate alias.
+  </Step>
+  
+  <Step title="PR Blocked">
+    Your pull request cannot be merged until the conflict is resolved.
+  </Step>
+  
+  <Step title="Review CI Logs">
+    Check the CI logs for specific details about which aliases conflict.
+  </Step>
+  
+  <Step title="Resolve Conflict">
+    Update your changes by:
+    - Removing the conflicting alias
+    - Using a more specific alias
+    - Engaging in PR discussion if there's a special case
+  </Step>
+</Steps>
+
+### Alias Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Research First" icon="magnifying-glass">
+    Before creating a PR, check existing protocols and their aliases to avoid conflicts.
+  </Card>
+  
+  <Card title="Be Specific" icon="bullseye">
+    Use specific, unambiguous aliases. When in doubt, use longer, more descriptive variations.
+  </Card>
+  
+  <Card title="Include Variations" icon="list">
+    Add common variations of the protocol name:
+    - Ticker symbols
+    - Common abbreviations
+    - Version numbers
+    - Alternative names
+  </Card>
+  
+  <Card title="Review CI Logs" icon="terminal">
+    When CI fails, carefully review the logs to understand exactly which aliases conflict.
+  </Card>
+</CardGroup>
+
+### Color Selection Guidelines
+
+<AccordionGroup>
+  <Accordion title="Use Official Brand Colors">
+    Always reference the protocol's official brand guidelines or press kit. Most protocols publish these on their websites.
+    
+    **Where to find official colors:**
+    - Protocol website footer or "Brand" section
+    - GitHub repository (often in `/assets` or `/branding`)
+    - Official press kits or media resources
+    - Protocol documentation sites
+  </Accordion>
+  
+  <Accordion title="Verify Color Accuracy">
+    Double-check that the hex code matches the official branding:
+    
+    1. Visit the protocol's official website
+    2. Use browser developer tools to inspect brand elements
+    3. Cross-reference with official brand guidelines
+    4. Include reference links in your PR description
+  </Accordion>
+  
+  <Accordion title="Handle Multiple Brand Colors">
+    If a protocol uses multiple brand colors:
+    
+    - Choose the **primary** brand color (usually the most prominent)
+    - Avoid gradients (use the main color from the gradient)
+    - When uncertain, check how the protocol uses colors in their logo
+  </Accordion>
+  
+  <Accordion title="Testnet vs Mainnet">
+    For testnets or alternative network versions:
+    
+    - Use the same color as mainnet unless the protocol specifies otherwise
+    - Add clear aliases to distinguish (e.g., "sepolia", "goerli")
+    - Document in PR if using a variant color
+  </Accordion>
+</AccordionGroup>
+
+## Contributing Workflow
+
+<Steps>
+  <Step title="Fork the Repository">
+    Fork the [color-palettes repository](https://github.com/duneanalytics/color-palettes) on GitHub.
+  </Step>
+  
+  <Step title="Edit color-palettes.json">
+    Add or update protocol entries following the schema requirements.
+  </Step>
+  
+  <Step title="Test Locally">
+    Validate your JSON to ensure it's properly formatted.
+  </Step>
+  
+  <Step title="Submit Pull Request">
+    Create a PR with:
+    - Clear description of changes
+    - Reference to official brand guidelines
+    - Explanation for any alias choices
+  </Step>
+  
+  <Step title="Respond to CI Checks">
+    If CI fails, review the logs and make necessary adjustments.
+  </Step>
+  
+  <Step title="Await Review">
+    Community members and maintainers will review your contribution.
+  </Step>
+</Steps>
+
+<Tip>
+  Small, focused PRs are easier to review and merge. Consider submitting separate PRs for different protocols.
+</Tip>
+
+## Getting Help
+
+If you encounter issues or have questions:
+
+- Open an issue on the [GitHub repository](https://github.com/duneanalytics/color-palettes/issues)
+- Join the Dune Discord community
+- Review existing PRs to see how others handle similar situations
+
+<Note>
+  The Color Palettes project relies on community contributions. Every contribution, no matter how small, helps improve the experience for all Dune Analytics users.
+</Note>

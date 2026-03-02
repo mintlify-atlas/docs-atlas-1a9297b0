@@ -1,0 +1,135 @@
+---
+title: Schema Overview
+description: Learn about the Color Palettes JSON schema structure and how it maintains standardized brand colors for blockchain protocols.
+---
+
+The Color Palettes project uses a structured JSON schema to maintain consistency and reliability across all protocol color definitions. This schema ensures that every color entry meets specific requirements and follows a standardized format.
+
+## Schema Purpose
+
+The JSON schema serves several critical functions:
+
+- **Validation**: Ensures all color entries meet required standards before being added to the collection
+- **Consistency**: Maintains uniform structure across all protocol definitions
+- **Quality Control**: Catches errors early in the contribution process through automated CI checks
+- **Documentation**: Provides a clear contract for what constitutes a valid color palette entry
+
+## Basic Structure
+
+Each protocol in the color palette follows this basic structure:
+
+<CodeGroup>
+```json Schema Format
+{
+  "protocol_name": {
+    "hex": "#RRGGBB",
+    "aliases": ["alias1", "alias2", "..."]
+  }
+}
+```
+
+```json Real Example
+{
+  "Ethereum": {
+    "hex": "#88AAF1",
+    "aliases": ["ethereum", "eth", "weth"]
+  }
+}
+```
+</CodeGroup>
+
+## Key Components
+
+<CardGroup cols={2}>
+  <Card title="Protocol Name" icon="tag">
+    The top-level key identifying the protocol, chain, or token. Must be unique across the entire collection.
+  </Card>
+  
+  <Card title="Hex Color" icon="palette">
+    The primary brand color in hexadecimal format. Must be exactly 6 characters (RGB) following the `#` symbol.
+  </Card>
+  
+  <Card title="Aliases" icon="list">
+    An array of alternative names and variations used to match protocol names in Dune queries.
+  </Card>
+  
+  <Card title="Schema Validation" icon="shield-check">
+    All entries are automatically validated against the JSON schema during the contribution process.
+  </Card>
+</CardGroup>
+
+## Multiple Protocol Examples
+
+Here are several real examples from the color palettes collection:
+
+```json
+{
+  "Uniswap": {
+    "hex": "#F50DB4",
+    "aliases": ["uniswap", "uni"]
+  },
+  "Base": {
+    "hex": "#0052FF",
+    "aliases": ["base"]
+  },
+  "Arbitrum": {
+    "hex": "#12AAFF",
+    "aliases": ["arbitrum", "arbitrum one", "arb"]
+  },
+  "Solana": {
+    "hex": "#14F195",
+    "aliases": ["solana", "sol"]
+  },
+  "Polygon": {
+    "hex": "#8A46FF",
+    "aliases": ["polygon", "polygon pos"]
+  }
+}
+```
+
+## Schema Compliance
+
+<Note>
+All contributions must pass JSON schema validation before being accepted into the collection. The automated CI pipeline runs these validations on every pull request.
+</Note>
+
+### What Gets Validated
+
+- Protocol name format and character restrictions
+- Hex color code format (must be exactly 6 hexadecimal characters)
+- Aliases array structure and content
+- Required fields presence
+- No additional properties beyond the defined schema
+- Unique aliases across all protocols (checked separately)
+
+## Schema Benefits
+
+<AccordionGroup>
+  <Accordion title="Automated Quality Assurance">
+    The schema enables automated validation in the CI pipeline, catching formatting errors, invalid color codes, and missing required fields before they reach the main branch.
+  </Accordion>
+  
+  <Accordion title="Clear Contribution Guidelines">
+    Contributors have a clear specification to follow, reducing errors and speeding up the review process.
+  </Accordion>
+  
+  <Accordion title="Reliable Data Structure">
+    Applications consuming the color palette data can rely on a consistent structure, simplifying parsing and implementation.
+  </Accordion>
+  
+  <Accordion title="Future-Proof Design">
+    The schema uses JSON Schema Draft 7, a widely supported standard that allows for future extensions while maintaining backward compatibility.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Schema Structure" icon="sitemap" href="/schema/structure">
+    Explore detailed property definitions and patterns
+  </Card>
+  
+  <Card title="Validation Rules" icon="check-circle" href="/schema/validation">
+    Learn about validation requirements and JSON schema
+  </Card>
+</CardGroup>

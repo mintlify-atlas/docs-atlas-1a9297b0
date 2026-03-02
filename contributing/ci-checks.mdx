@@ -1,0 +1,693 @@
+---
+title: CI Validation Checks
+description: Understanding automated CI checks that validate Color Palettes contributions
+---
+
+Every pull request to the Color Palettes repository is automatically validated by Continuous Integration (CI) checks. These automated tests ensure that all contributions meet the project's quality standards before merging.
+
+## Overview of CI Validation
+
+The validation workflow runs automatically when:
+
+<CardGroup cols={2}>
+  <Card title="Pull Requests" icon="code-pull-request">
+    Any PR targeting the `main` branch that modifies JSON files
+  </Card>
+  <Card title="Direct Pushes" icon="upload">
+    Any push to the `main` branch that modifies JSON files
+  </Card>
+</CardGroup>
+
+**File Triggers**:
+- `*.json` (root level JSON files)
+- `palettes/**/*.json` (JSON files in palettes directory)
+
+## CI Workflow Structure
+
+The complete workflow is defined in `.github/workflows/validate-schema.yml`:
+
+```yaml
+name: Validate Color Palette Schema
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '*.json'
+      - 'palettes/**/*.json'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '*.json'
+      - 'palettes/**/*.json'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JSON Schema
+        uses: cardinalby/schema-validator-action@v1
+        with:
+          schema: schema.json
+          file: color-palettes.json
+
+      - name: Check for duplicate aliases
+        run: |
+          # Extract all aliases and their protocols, then check for duplicates
+          jq -r 'to_entries | .[] | .key as $protocol | .value.aliases[] | [$protocol, .] | @tsv' color-palettes.json | \
+          awk -F '\t' '{
+            # Store the original alias
+            original_alias = $2
+            # Convert alias to lowercase for case-insensitive comparison
+            alias = tolower(original_alias)
+            
+            # Check if this exact alias has been seen before (only comparing aliases)
+            if (seen[alias]) {
+              printf "Error: Duplicate alias \"%s\" found in protocols \"%s\" and \"%s\"\n", 
+                     original_alias, seen[alias], $1
+              exit 1
+            }
+            
+            # Store the protocol for this alias
+            seen[alias] = $1
+          }'
+```
+
+## Validation Checks Explained
+
+### Check 1: JSON Schema Validation
+
+<Tabs>
+  <Tab title="What It Checks">
+    Validates that `color-palettes.json` conforms to the defined schema in `schema.json`.
+    
+    **Validation Rules**:
+    
+    <AccordionGroup>
+      <Accordion title="Protocol Name Format">
+        **Pattern**: `^[A-Za-z0-9\\s\\-_().₮]+$`
+        
+        **Valid Examples**:
+        - ✅ `"Ethereum"`
+        - ✅ `"Polygon zkEVM"`
+        - ✅ `"1inch"`
+        - ✅ `"USD₮"`
+        
+        **Invalid Examples**:
+        - ❌ `"Protocol/Name"` (contains `/`)
+        - ❌ `"Protocol@Chain"` (contains `@`)
+        - ❌ `"Protocol#1"` (contains `#`)
+      </Accordion>
+      
+      <Accordion title="Hex Color Format">
+        **Pattern**: `^#[0-9A-Fa-f]{6}$`
+        
+        **Valid Examples**:
+        - ✅ `"#627EEA"`
+        - ✅ `"#FF007A"`
+        - ✅ `"#000000"`
+        
+        **Invalid Examples**:
+        - ❌ `"627EEA"` (missing `#` prefix)
+        - ❌ `"#627"` (too short)
+        - ❌ `"#627EEAFF"` (too long - no alpha)
+        - ❌ `"#GG0000"` (invalid hex characters)
+      </Accordion>
+      
+      <Accordion title="Aliases Array Format">
+        **Requirements**:
+        - Must be an array
+        - Minimum 1 item
+        - All items must be unique
+        - Each item matches: `^[a-zA-Z0-9_\\s.₮-]+$`
+        
+        **Valid Examples**:
+        - ✅ `["ethereum", "eth", "weth"]`
+        - ✅ `["polygon"]`
+        - ✅ `["usd-tether-0"]`
+        
+        **Invalid Examples**:
+        - ❌ `[]` (empty array)
+        - ❌ `["eth", "eth"]` (duplicates)
+        - ❌ `["eth/weth"]` (invalid character `/`)
+      </Accordion>
+      
+      <Accordion title="Required Fields">
+        Every protocol entry must include:
+        - `"hex"` (string)
+        - `"aliases"` (array)
+        
+        **Valid Example**:
+        ```json
+        "Ethereum": {
+          "hex": "#88AAF1",
+          "aliases": ["ethereum", "eth"]
+        }
+        ```
+        
+        **Invalid Examples**:
+        ```json
+        // ❌ Missing hex
+        "Ethereum": {
+          "aliases": ["ethereum"]
+        }
+        
+        // ❌ Missing aliases
+        "Ethereum": {
+          "hex": "#88AAF1"
+        }
+        
+        // ❌ Extra fields not allowed
+        "Ethereum": {
+          "hex": "#88AAF1",
+          "aliases": ["ethereum"],
+          "description": "Layer 1 blockchain"
+        }
+        ```
+      </Accordion>
+    </AccordionGroup>
+  </Tab>
+  
+  <Tab title="Implementation">
+    Uses the `cardinalby/schema-validator-action@v1` GitHub Action:
+    
+    ```yaml
+    - name: Validate JSON Schema
+      uses: cardinalby/schema-validator-action@v1
+      with:
+        schema: schema.json
+        file: color-palettes.json
+    ```
+    
+    **The Schema** (`schema.json`):
+    ```json
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "patternProperties": {
+        "^[A-Za-z0-9\\s\\-_().₮]+$": {
+          "type": "object",
+          "properties": {
+            "hex": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            "aliases": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_\\s.₮-]+$"
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "required": ["hex", "aliases"],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Common Failures">
+    <Warning>
+      **Invalid Hex Color**
+      
+      ```
+      Error: Instance does not match schema
+      Path: /Ethereum/hex
+      Message: String does not match pattern ^#[0-9A-Fa-f]{6}$
+      Value: "627EEA"
+      ```
+      
+      **Fix**: Add `#` prefix → `"#627EEA"`
+    </Warning>
+    
+    <Warning>
+      **Empty Aliases Array**
+      
+      ```
+      Error: Instance does not match schema
+      Path: /Ethereum/aliases
+      Message: Array has too few items (0), minimum 1
+      Value: []
+      ```
+      
+      **Fix**: Add at least one alias → `["ethereum"]`
+    </Warning>
+    
+    <Warning>
+      **Missing Required Field**
+      
+      ```
+      Error: Instance does not match schema
+      Path: /Ethereum
+      Message: Required property 'hex' is missing
+      ```
+      
+      **Fix**: Add hex property → `"hex": "#88AAF1"`
+    </Warning>
+    
+    <Warning>
+      **Additional Properties**
+      
+      ```
+      Error: Instance does not match schema
+      Path: /Ethereum
+      Message: Additional properties not allowed: description
+      ```
+      
+      **Fix**: Remove extra fields, only `hex` and `aliases` allowed
+    </Warning>
+  </Tab>
+</Tabs>
+
+### Check 2: Duplicate Alias Detection
+
+<Tabs>
+  <Tab title="What It Checks">
+    Ensures no alias is used by multiple protocols, using case-insensitive comparison.
+    
+    **Detection Logic**:
+    1. Extracts all aliases from all protocols
+    2. Converts each alias to lowercase
+    3. Tracks which protocol "owns" each lowercase alias
+    4. Fails if any alias appears in multiple protocols
+    
+    **Example Conflict**:
+    ```json
+    {
+      "BNB": {
+        "hex": "#F3BA2F",
+        "aliases": ["bnb", "bsc"]
+      },
+      "Basis Cash": {
+        "hex": "#000000",
+        "aliases": ["bsc", "basis"]  // ❌ "bsc" conflicts
+      }
+    }
+    ```
+    
+    **CI Output**:
+    ```bash
+    Error: Duplicate alias "bsc" found in protocols "BNB" and "Basis Cash"
+    ```
+  </Tab>
+  
+  <Tab title="Implementation">
+    Custom shell script using `jq` and `awk`:
+    
+    ```bash
+    # Extract all aliases and their protocols, then check for duplicates
+    jq -r 'to_entries | .[] | .key as $protocol | .value.aliases[] | [$protocol, .] | @tsv' color-palettes.json | \
+    awk -F '\t' '{
+      # Store the original alias
+      original_alias = $2
+      # Convert alias to lowercase for case-insensitive comparison
+      alias = tolower(original_alias)
+      
+      # Check if this exact alias has been seen before (only comparing aliases)
+      if (seen[alias]) {
+        printf "Error: Duplicate alias \"%s\" found in protocols \"%s\" and \"%s\"\n", 
+               original_alias, seen[alias], $1
+        exit 1
+      }
+      
+      # Store the protocol for this alias
+      seen[alias] = $1
+    }'
+    ```
+    
+    **How It Works**:
+    
+    <Steps>
+      <Step title="Extract Protocol-Alias Pairs">
+        `jq` extracts all protocols and their aliases into tab-separated format:
+        
+        ```
+        Ethereum    ethereum
+        Ethereum    eth
+        Ethereum    weth
+        Polygon     polygon
+        Polygon     matic
+        ```
+      </Step>
+      
+      <Step title="Process Each Alias">
+        `awk` reads each line and:
+        - Stores the original alias (preserving case)
+        - Converts alias to lowercase for comparison
+        - Checks if lowercase alias already exists
+      </Step>
+      
+      <Step title="Track Ownership">
+        Associates each lowercase alias with its protocol in the `seen` array:
+        
+        ```
+        seen["ethereum"] = "Ethereum"
+        seen["eth"] = "Ethereum"
+        seen["polygon"] = "Polygon"
+        ```
+      </Step>
+      
+      <Step title="Detect Conflicts">
+        If a lowercase alias is encountered that already exists in `seen`, the script:
+        - Prints an error message
+        - Shows both protocols using the alias
+        - Exits with code 1 (failure)
+      </Step>
+    </Steps>
+  </Tab>
+  
+  <Tab title="Case Sensitivity">
+    The check is **case-insensitive** because Dune's color matching uses lowercase comparison.
+    
+    **These Would Conflict**:
+    ```json
+    {
+      "Protocol A": {
+        "hex": "#111111",
+        "aliases": ["ETH"]  // Uppercase
+      },
+      "Protocol B": {
+        "hex": "#222222",
+        "aliases": ["eth"]  // Lowercase - ❌ CONFLICT
+      }
+    }
+    ```
+    
+    **Error Message**:
+    ```bash
+    Error: Duplicate alias "eth" found in protocols "Protocol A" and "Protocol B"
+    ```
+    
+    <Info>
+      Even though "ETH" and "eth" look different, they're treated as the same alias because Dune matches case-insensitively.
+    </Info>
+  </Tab>
+  
+  <Tab title="Common Failures">
+    <Warning>
+      **Simple Duplicate**
+      
+      ```bash
+      Error: Duplicate alias "bsc" found in protocols "BNB" and "Basis Cash"
+      ```
+      
+      **Fix**: Remove or rename the conflicting alias in one of the protocols
+      
+      See [Understanding Alias Conflicts](/contributing/alias-conflicts) for resolution strategies.
+    </Warning>
+    
+    <Warning>
+      **Case Variation Duplicate**
+      
+      ```bash
+      Error: Duplicate alias "OP" found in protocols "Optimism" and "Ocean Protocol"
+      ```
+      
+      **Fix**: Use more specific aliases:
+      - Optimism: `["optimism", "op", "op mainnet"]`
+      - Ocean Protocol: `["ocean", "ocean_protocol"]`
+    </Warning>
+    
+    <Warning>
+      **Multi-Protocol Conflict**
+      
+      ```bash
+      Error: Duplicate alias "link" found in protocols "Chainlink" and "Link Protocol"
+      Error: Duplicate alias "link" found in protocols "Link Protocol" and "LinkDAO"
+      ```
+      
+      **Fix**: Only one protocol can use "link". Assign to most common usage (Chainlink), others use specific aliases.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Interpreting CI Results
+
+### Successful Validation
+
+When all checks pass, you'll see:
+
+```
+✅ Validate Color Palette Schema
+   ✅ Validate JSON Schema — Passed
+   ✅ Check for duplicate aliases — Passed
+```
+
+<Check>
+  Your pull request is ready for maintainer review!
+</Check>
+
+### Failed Validation
+
+When checks fail, you'll see specific error messages:
+
+<Tabs>
+  <Tab title="Schema Validation Failure">
+    ```
+    ❌ Validate Color Palette Schema
+       ❌ Validate JSON Schema — Failed
+       
+       Error: Instance does not match schema
+       Path: /Ethereum/hex
+       Message: String does not match pattern ^#[0-9A-Fa-f]{6}$
+       Value: "627EEA"
+    ```
+    
+    **What to do**:
+    1. Read the error message carefully
+    2. Identify the problematic path (e.g., `/Ethereum/hex`)
+    3. Check the value against the schema requirements
+    4. Fix the issue in your `color-palettes.json`
+    5. Commit and push the fix
+  </Tab>
+  
+  <Tab title="Duplicate Alias Failure">
+    ```
+    ❌ Validate Color Palette Schema
+       ✅ Validate JSON Schema — Passed
+       ❌ Check for duplicate aliases — Failed
+       
+       Error: Duplicate alias "bsc" found in protocols "BNB" and "Basis Cash"
+    ```
+    
+    **What to do**:
+    1. Identify the conflicting alias (e.g., "bsc")
+    2. Determine which protocols are affected
+    3. Refer to [Understanding Alias Conflicts](/contributing/alias-conflicts)
+    4. Choose and implement a resolution strategy
+    5. Commit and push the fix
+  </Tab>
+  
+  <Tab title="Multiple Failures">
+    ```
+    ❌ Validate Color Palette Schema
+       ❌ Validate JSON Schema — Failed
+       ❌ Check for duplicate aliases — Failed
+       
+       Schema Error: Missing required property 'hex' at /NewProtocol
+       Duplicate Error: Duplicate alias "op" found in protocols "Optimism" and "Ocean Protocol"
+    ```
+    
+    **What to do**:
+    1. Fix schema issues first (they're usually simpler)
+    2. Then address alias conflicts
+    3. Commit all fixes together
+    4. Push and wait for CI to re-run
+  </Tab>
+</Tabs>
+
+## Troubleshooting CI Failures
+
+<AccordionGroup>
+  <Accordion title="CI Won't Run" icon="circle-pause">
+    **Symptoms**: No CI checks appear on your PR
+    
+    **Possible Causes**:
+    1. You didn't modify any JSON files
+    2. Changes are in a different directory
+    3. Branch protection not configured
+    
+    **Solutions**:
+    - Ensure you modified `color-palettes.json` or files in `palettes/**/*.json`
+    - Check the "Files changed" tab in your PR
+    - Verify the workflow file exists in `.github/workflows/`
+  </Accordion>
+  
+  <Accordion title="CI Stuck on 'Pending'" icon="clock">
+    **Symptoms**: CI checks show "Expected — Waiting for status to be reported"
+    
+    **Possible Causes**:
+    1. GitHub Actions queue delay
+    2. Workflow requires approval (first-time contributors)
+    3. Repository Actions disabled
+    
+    **Solutions**:
+    - Wait a few minutes for the queue
+    - Ask a maintainer to approve workflow run
+    - Check if Actions are enabled in repository settings
+  </Accordion>
+  
+  <Accordion title="Can't Understand Error Message" icon="circle-question">
+    **Symptoms**: CI fails but error message is unclear
+    
+    **Solutions**:
+    1. Click "Details" next to the failed check
+    2. Expand the failed step to see full logs
+    3. Copy the exact error message
+    4. Search documentation or existing issues
+    5. Comment on your PR asking for clarification
+    
+    <Info>
+      Maintainers are happy to help interpret CI errors. Include the full error message in your comment.
+    </Info>
+  </Accordion>
+  
+  <Accordion title="Fixed but CI Still Fails" icon="arrows-rotate">
+    **Symptoms**: Made changes but CI shows same error
+    
+    **Possible Causes**:
+    1. Changes not committed
+    2. Changes not pushed
+    3. CI running on old commit
+    
+    **Solutions**:
+    ```bash
+    # Verify changes are staged
+    git status
+    
+    # Commit if needed
+    git add color-palettes.json
+    git commit -m "Fix CI issues"
+    
+    # Push to trigger new CI run
+    git push origin your-branch-name
+    ```
+    
+    Check the commit SHA in the PR to ensure CI is running on your latest commit.
+  </Accordion>
+  
+  <Accordion title="CI Passes Locally but Fails in GitHub" icon="code-compare">
+    **Symptoms**: Local validation passes but CI fails
+    
+    **Possible Causes**:
+    1. Different versions of tools (jq, etc.)
+    2. Line ending differences (Windows vs. Unix)
+    3. Testing different file
+    
+    **Solutions**:
+    - Ensure you're testing the exact same file
+    - Check for whitespace or encoding issues
+    - Trust CI results over local tests
+    - Review the CI logs for specific differences
+  </Accordion>
+</AccordionGroup>
+
+## Running Validation Locally
+
+You can run the same checks locally before submitting:
+
+<Steps>
+  <Step title="Install Required Tools">
+    <Tabs>
+      <Tab title="macOS">
+        ```bash
+        # Install jq using Homebrew
+        brew install jq
+        ```
+      </Tab>
+      
+      <Tab title="Linux">
+        ```bash
+        # Ubuntu/Debian
+        sudo apt-get install jq
+        
+        # Fedora
+        sudo dnf install jq
+        
+        # Arch
+        sudo pacman -S jq
+        ```
+      </Tab>
+      
+      <Tab title="Windows">
+        ```powershell
+        # Using Chocolatey
+        choco install jq
+        
+        # Or download from https://stedolan.github.io/jq/download/
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+  
+  <Step title="Validate JSON Schema">
+    ```bash
+    # Basic JSON syntax validation
+    cat color-palettes.json | jq . > /dev/null && echo "✓ Valid JSON"
+    
+    # For full schema validation, install ajv-cli:
+    npm install -g ajv-cli
+    ajv validate -s schema.json -d color-palettes.json
+    ```
+  </Step>
+  
+  <Step title="Check for Duplicate Aliases">
+    ```bash
+    # Run the exact CI check locally
+    jq -r 'to_entries | .[] | .key as $protocol | .value.aliases[] | [$protocol, .] | @tsv' color-palettes.json | \
+    awk -F '\t' '{
+      original_alias = $2
+      alias = tolower(original_alias)
+      
+      if (seen[alias]) {
+        printf "Error: Duplicate alias \"%s\" found in protocols \"%s\" and \"%s\"\n", 
+               original_alias, seen[alias], $1
+        exit 1
+      }
+      
+      seen[alias] = $1
+    }' && echo "✓ No duplicate aliases found"
+    ```
+  </Step>
+</Steps>
+
+## Best Practices for Passing CI
+
+<CardGroup cols={2}>
+  <Card title="Validate Before Committing" icon="check-double">
+    Run local validation before every commit to catch issues early
+  </Card>
+  
+  <Card title="Follow the Schema Exactly" icon="file-contract">
+    Don't add extra fields or use different formats than specified
+  </Card>
+  
+  <Card title="Check for Existing Aliases" icon="magnifying-glass">
+    Search the JSON file before adding new aliases to avoid conflicts
+  </Card>
+  
+  <Card title="Use Automated Formatting" icon="wand-magic-sparkles">
+    Format your JSON with `jq` or your editor's formatter
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+If you're stuck with CI failures:
+
+1. Read the error message carefully - it usually tells you exactly what's wrong
+2. Check this documentation for explanations and solutions
+3. Review [Contribution Guidelines](/contributing/guidelines) for best practices
+4. Search existing issues and PRs for similar problems
+5. Comment on your PR asking for help (include the full error message)
+
+<Info>
+  CI checks are designed to help you, not block you. When they fail, they're providing valuable feedback to improve your contribution.
+</Info>

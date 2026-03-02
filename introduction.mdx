@@ -1,0 +1,188 @@
+---
+title: Color Palettes for Dune Analytics
+description: A community-maintained collection of standardized brand colors for blockchain protocols
+---
+
+<Card title="Color Palettes" icon="palette" iconType="solid">
+  Maintain consistent, professional visualizations across your Dune Analytics dashboards with standardized protocol brand colors.
+</Card>
+
+## Welcome to Color Palettes
+
+Color Palettes is a community-maintained collection of standardized brand colors for blockchain protocols, chains, and tokens. This tool helps analysts maintain consistent color schemes across their visualizations without manual color picking for each chart.
+
+<Note>
+  **Automatic Color Application**: Colors are automatically applied when protocol or chain names are detected in your query results. No manual configuration required for most use cases!
+</Note>
+
+## Why Use Color Palettes?
+
+When creating visualizations on Dune, analysts frequently work with the same protocols and chains across different charts. Manually selecting colors for each visualization is:
+
+<CardGroup cols={3}>
+  <Card title="Time-Consuming" icon="clock" iconType="solid">
+    Spend time analyzing data, not picking colors for every chart
+  </Card>
+  <Card title="Inconsistent" icon="shuffle" iconType="solid">
+    Different colors for the same protocol across dashboards confuse viewers
+  </Card>
+  <Card title="Hard to Maintain" icon="wrench" iconType="solid">
+    Updating colors across multiple dashboards requires tedious manual work
+  </Card>
+</CardGroup>
+
+This standard provides a **single source of truth** for protocol brand colors, ensuring consistency and saving valuable time.
+
+## Key Features
+
+### Comprehensive Coverage
+
+Supporting 200+ protocols, chains, and tokens including:
+
+<CardGroup cols={2}>
+  <Card title="Major Chains" icon="link">
+    Ethereum, Base, Arbitrum, Optimism, Polygon, Solana, and more
+  </Card>
+  <Card title="DeFi Protocols" icon="chart-line">
+    Uniswap, Aave, Curve, Lido, and hundreds more
+  </Card>
+  <Card title="NFT Marketplaces" icon="image">
+    OpenSea, Blur, Magic Eden, LooksRare, and others
+  </Card>
+  <Card title="Stablecoins" icon="dollar-sign">
+    USDC, USDT, DAI, and various stablecoin variants
+  </Card>
+</CardGroup>
+
+### Smart Alias Matching
+
+The system automatically matches common variations of protocol names:
+
+```json
+{
+  "Ethereum": {
+    "hex": "#88AAF1",
+    "aliases": ["ethereum", "eth", "weth"]
+  },
+  "Uniswap": {
+    "hex": "#F50DB4",
+    "aliases": ["uniswap", "uni"]
+  },
+  "Arbitrum": {
+    "hex": "#12AAFF",
+    "aliases": ["arbitrum", "arbitrum one", "arb"]
+  }
+}
+```
+
+<Tip>
+  Aliases are matched case-insensitively, so `ETH`, `Eth`, and `eth` all work!
+</Tip>
+
+### Automatic Color Application
+
+Colors are automatically applied to your visualizations when protocols or chains are detected in your query results. The system matches against all defined aliases (case-insensitive).
+
+**Matching examples** (using `"Ethereum"` with aliases `["eth", "weth"]`):
+
+<CodeGroup>
+
+```sql Exact Match
+SELECT 'eth' as blockchain
+-- Automatically colored with #88AAF1
+```
+
+```sql Case Insensitive
+SELECT 'WeTh' as token
+-- Automatically colored with #88AAF1
+```
+
+```sql Special Syntax
+SELECT 'evm_<color:eth>' as label
+-- Supports special color hint syntax
+```
+
+</CodeGroup>
+
+### Full Customization Control
+
+You maintain complete control over your visualization colors:
+
+- **Override Colors**: Replace any automatically applied color with your preferred choice
+- **Restore Defaults**: Easily revert to standard Color Palettes with the "Restore colors" button
+
+## Color Schema
+
+Each protocol entry follows this standardized structure:
+
+| Property      | Type   | Description                                              |
+| ------------- | ------ | -------------------------------------------------------- |
+| protocol_name | string | The official name of the protocol or chain               |
+| hex           | string | The hex color code of the protocol's primary brand color |
+| aliases       | array  | Common variations of the protocol name used in queries   |
+
+<Accordion title="View Real Examples from Color Palettes">
+
+```json
+{
+  "Base": {
+    "hex": "#0052FF",
+    "aliases": ["base"]
+  },
+  "Optimism": {
+    "hex": "#FF0420",
+    "aliases": ["optimism", "op mainnet", "op"]
+  },
+  "Polygon": {
+    "hex": "#8A46FF",
+    "aliases": ["polygon", "polygon pos"]
+  },
+  "Starknet": {
+    "hex": "#E77786",
+    "aliases": ["starknet", "strk"]
+  },
+  "Lido": {
+    "hex": "#4DB0F2",
+    "aliases": ["lido"]
+  },
+  "USDC": {
+    "hex": "#2775CA",
+    "aliases": ["usdc"]
+  },
+  "DAI": {
+    "hex": "#F2B705",
+    "aliases": ["dai"]
+  }
+}
+```
+
+</Accordion>
+
+## Community-Driven
+
+Color Palettes is maintained by the Dune Analytics community. Contributions are welcome and encouraged:
+
+<CardGroup cols={2}>
+  <Card title="Add New Protocols" icon="plus" iconType="solid">
+    Submit colors for protocols not yet in the collection
+  </Card>
+  <Card title="Update Colors" icon="paintbrush" iconType="solid">
+    Keep brand colors current with protocol rebrands
+  </Card>
+  <Card title="Expand Aliases" icon="tags" iconType="solid">
+    Add common name variations for better matching
+  </Card>
+  <Card title="Report Issues" icon="flag" iconType="solid">
+    Help identify and fix inconsistencies
+  </Card>
+</CardGroup>
+
+<Warning>
+  **Avoid Alias Conflicts**: The CI system automatically checks for duplicate aliases across different protocols. Make sure your aliases are unique!
+</Warning>
+
+## Get Started
+
+<Card title="Ready to use Color Palettes?" icon="rocket" href="/quickstart">
+  Check out the Quickstart guide to learn how to use Color Palettes in your Dune queries
+</Card>

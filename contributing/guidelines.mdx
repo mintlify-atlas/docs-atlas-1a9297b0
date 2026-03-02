@@ -1,0 +1,217 @@
+---
+title: Contribution Guidelines
+description: Learn how to contribute to the Color Palettes project and help maintain consistent brand colors for blockchain protocols in Dune Analytics
+---
+
+The Color Palettes project is a community-driven initiative that maintains standardized brand colors for blockchain protocols, chains, and tokens used in Dune Analytics. Your contributions help analysts create consistent visualizations across their dashboards.
+
+## Why Contribute?
+
+When creating visualizations on Dune, analysts frequently work with the same protocols and chains across different charts. Manually selecting colors for each visualization is:
+
+- Time-consuming
+- Prone to inconsistency
+- Difficult to maintain across multiple dashboards
+
+By contributing to Color Palettes, you provide a single source of truth for protocol brand colors, ensuring consistency and saving valuable time for the entire community.
+
+## What You Can Contribute
+
+<CardGroup cols={2}>
+  <Card title="New Protocol Colors" icon="plus">
+    Submit brand colors for protocols not yet in the collection
+  </Card>
+  <Card title="Color Updates" icon="palette">
+    Update existing color codes when brands refresh their visual identity
+  </Card>
+  <Card title="Alias Additions" icon="tag">
+    Add new aliases for existing protocols to improve matching
+  </Card>
+  <Card title="Bug Reports" icon="bug">
+    Report inconsistencies or issues with existing entries
+  </Card>
+</CardGroup>
+
+## Contribution Workflow
+
+<Steps>
+  <Step title="Fork the Repository">
+    Create your own fork of the Color Palettes repository to work in.
+  </Step>
+  
+  <Step title="Make Your Changes">
+    Edit the `color-palettes.json` file following the schema requirements.
+    
+    See [Adding New Protocol Colors](/contributing/adding-colors) for detailed instructions.
+  </Step>
+  
+  <Step title="Test Locally">
+    Validate your JSON changes are properly formatted and follow the schema.
+    
+    ```bash
+    # Ensure valid JSON syntax
+    cat color-palettes.json | jq .
+    ```
+  </Step>
+  
+  <Step title="Submit Pull Request">
+    Create a pull request with a clear description of your changes.
+    
+    <Info>
+    Automated CI checks will run on your PR to validate schema compliance and detect alias conflicts.
+    </Info>
+  </Step>
+  
+  <Step title="Address CI Feedback">
+    If CI checks fail, review the error messages and update your PR accordingly.
+    
+    See [CI Validation Checks](/contributing/ci-checks) for details on automated validation.
+  </Step>
+  
+  <Step title="Wait for Review">
+    Maintainers will review your contribution and may request changes or clarifications.
+  </Step>
+</Steps>
+
+## Best Practices
+
+### Use Official Brand Colors
+
+Always use the official brand colors when available. Check:
+
+- Official protocol websites
+- Brand guidelines and press kits
+- Protocol documentation
+- Official social media accounts
+
+<Warning>
+  Avoid using colors from unofficial sources or making aesthetic choices. The goal is brand accuracy, not personal preference.
+</Warning>
+
+### Choose Descriptive Aliases
+
+<AccordionGroup>
+  <Accordion title="Include Common Variations">
+    Add aliases for common variations of the protocol name that users might search for:
+    
+    ```json
+    "Ethereum": {
+      "hex": "#88AAF1",
+      "aliases": ["ethereum", "eth", "weth"]
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Consider Query Patterns">
+    Think about how the protocol appears in Dune query results:
+    
+    ```json
+    "Uniswap": {
+      "hex": "#F50DB4",
+      "aliases": ["uniswap", "uni"]
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Avoid Ambiguous Aliases">
+    Don't use aliases that could refer to multiple protocols. For example, "BSC" could mean "Binance Smart Chain" or "Basis Cash".
+    
+    See [Understanding Alias Conflicts](/contributing/alias-conflicts) for resolution strategies.
+  </Accordion>
+  
+  <Accordion title="Use Lowercase for Aliases">
+    All aliases should be lowercase as matching is case-insensitive:
+    
+    ```json
+    "aliases": ["polygon", "matic", "polygon pos"]
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Maintain Consistency
+
+<CardGroup cols={2}>
+  <Card title="Follow Existing Patterns" icon="list-check">
+    Review existing entries to understand naming conventions and alias patterns
+  </Card>
+  <Card title="One Color Per Protocol" icon="droplet">
+    Use the primary brand color, not variations or secondary colors
+  </Card>
+  <Card title="Exact Hex Format" icon="hashtag">
+    Always use 6-digit hex codes with the # prefix (e.g., `#627EEA`)
+  </Card>
+  <Card title="Alphabetical Order" icon="arrow-down-a-z">
+    While not required, maintaining alphabetical order helps readability
+  </Card>
+</CardGroup>
+
+## Pull Request Guidelines
+
+### PR Title Format
+
+Use clear, descriptive titles:
+
+- ✅ `Add Arbitrum Nova protocol colors`
+- ✅ `Update Ethereum brand color to match new guidelines`
+- ✅ `Add 'strk' alias for Starknet`
+- ❌ `Update colors`
+- ❌ `Fix`
+
+### PR Description
+
+Include in your PR description:
+
+1. **What**: Brief description of the change
+2. **Why**: Reason for the change (e.g., new protocol, rebranding, missing alias)
+3. **Source**: Link to official brand guidelines or documentation
+
+<CodeGroup>
+```markdown Example: New Protocol
+Adding color palette for Arbitrum Nova.
+
+**Source**: https://arbitrum.io/brand-kit
+**Primary Color**: #EF8220
+**Aliases**: Added 'nova' as the common abbreviation
+```
+
+```markdown Example: Color Update
+Updating Optimism brand color to reflect their 2025 rebrand.
+
+**Source**: https://optimism.io/brand
+**Old Color**: #FF0420
+**New Color**: #FF0520
+**Note**: Official announcement on 2025-01-15
+```
+
+```markdown Example: Alias Addition
+Adding 'op mainnet' alias for Optimism to match Dune chain naming.
+
+**Reason**: Query results show 'op mainnet' as chain identifier
+**Testing**: Verified in dashboard XYZ
+```
+</CodeGroup>
+
+## Code of Conduct
+
+<Card title="Be Respectful and Collaborative" icon="handshake">
+  - Be patient with review feedback
+  - Engage constructively in discussions
+  - Respect maintainer decisions
+  - Help other contributors when possible
+</Card>
+
+## Getting Help
+
+If you're unsure about any aspect of contributing:
+
+1. Check existing issues and pull requests for similar cases
+2. Open a discussion issue before submitting a PR
+3. Tag maintainers for clarification
+4. Refer to the detailed guides:
+   - [Adding New Protocol Colors](/contributing/adding-colors)
+   - [Understanding Alias Conflicts](/contributing/alias-conflicts)
+   - [CI Validation Checks](/contributing/ci-checks)
+
+<Info>
+  Questions are always welcome! The community is here to help you contribute successfully.
+</Info>
