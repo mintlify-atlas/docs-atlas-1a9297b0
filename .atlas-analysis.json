@@ -1,0 +1,65 @@
+{
+  "projectType": "data-platform",
+  "projectName": "Color Palettes",
+  "projectDescription": "A community-maintained collection of standardized brand colors for blockchain protocols, chains, and tokens used in Dune Analytics visualizations.",
+  "theme": "mint",
+  "primaryColor": "#FF6854",
+  "lightColor": "#FFDCD5",
+  "darkColor": "#CC5343",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": [
+          "introduction",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Using Color Palettes",
+        "pages": [
+          "usage/automatic-application",
+          "usage/customization",
+          "usage/query-examples"
+        ]
+      },
+      {
+        "group": "Schema",
+        "pages": [
+          "schema/overview",
+          "schema/structure",
+          "schema/validation"
+        ]
+      },
+      {
+        "group": "Contributing",
+        "pages": [
+          "contributing/guidelines",
+          "contributing/adding-colors",
+          "contributing/alias-conflicts",
+          "contributing/ci-checks"
+        ]
+      },
+      {
+        "group": "Reference",
+        "pages": [
+          "reference/color-catalog",
+          "reference/best-practices"
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Standardized brand colors for 350+ blockchain protocols and chains",
+    "Automatic color application in Dune Analytics visualizations",
+    "Flexible alias system for protocol name variations",
+    "JSON schema validation and duplicate alias detection",
+    "Community-driven contributions with automated CI checks"
+  ],
+  "publicApiSurface": [
+    "color-palettes.json - Main color palette dataset",
+    "schema.json - JSON schema for validation",
+    "Protocol color entries with hex codes and aliases",
+    "Alias matching system (case-insensitive with evm_<color:*> support)"
+  ]
+}
